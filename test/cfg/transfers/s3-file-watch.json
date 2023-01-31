@@ -2,8 +2,11 @@
   "type": "transfer",
   "source": {
     "bucket": "test-bucket",
-    "path": "/src",
-    "fileRegex": ".*\\.txt",
+    "fileWatch": {
+      "timeout": 15,
+      "directory": "src",
+      "fileRegex": ".*\\.txt"
+    },
     "protocol": {
       "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
     }

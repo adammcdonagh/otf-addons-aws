@@ -1,0 +1,20 @@
+{
+  "type": "transfer",
+  "source": {
+    "bucket": "test-bucket",
+    "path": "/src",
+    "fileRegex": ".*\\.txt",
+    "protocol": {
+      "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+    }
+  },
+  "destination": [
+    {
+      "bucket": "test-bucket-2",
+      "path": "/dest",
+      "protocol": {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+      }
+    }
+  ]
+}

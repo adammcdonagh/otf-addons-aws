@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 
@@ -93,24 +94,74 @@ class S3Transfer(RemoteTransferHandler):
     def move_files_to_final_location(self, files):
         raise NotImplementedError()
 
-    ## When S3 is the destination
+    # When S3 is the destination
     def pull_files(self, files, remote_spec):
         raise NotImplementedError()
+
+    def push_files_from_worker(self, local_staging_directory):
+        result = 0
+        files = glob.glob(f"{local_staging_directory}/*")
+        for file in files:
+            # Strip the directory from the file
+            file_name = file.split("/")[-1]
+            self.logger.debug(f"Transferring file: {file}")
+            try:
+                self.s3_client.upload_file(
+                    file,
+                    self.spec["bucket"],
+                    f"{self.spec['directory']}/{file_name}",
+                )
+            except Exception as e:
+                self.logger.error(f"Failed to transfer file: {file}")
+                self.logger.error(e)
+                result = 1
+
+        return result
+
+    def pull_files_to_worker(self, files, local_staging_directory):
+        result = 0
+        for file in files:
+            # Strip the directory from the file
+            file_name = file.split("/")[-1]
+            self.logger.debug(f"Transferring file: {file}")
+            try:
+                self.s3_client.download_file(
+                    self.spec["bucket"],
+                    file,
+                    f"{local_staging_directory}/{file_name}",
+                )
+            except Exception as e:
+                self.logger.error(f"Failed to transfer file: {file}")
+                self.logger.error(e)
+                result = 1
+
+        return result
 
     def transfer_files(self, files, remote_spec, dest_remote_handler=None):
         # Check the remote handler, if it's another S3Transfer, then it's simple
         # to do an S3 copy via boto
+
         if isinstance(dest_remote_handler, S3Transfer):
+            result = 0
             for file in files:
+                # Strip the directory from the file
+                file_name = file.split("/")[-1]
                 self.logger.debug(f"Transferring file: {file}")
-                self.s3_client.copy(
-                    {
-                        "Bucket": remote_spec["bucket"],
-                        "Key": file,
-                    },
-                    dest_remote_handler.spec["bucket"],
-                    file,
-                )
+                try:
+                    self.s3_client.copy(
+                        {
+                            "Bucket": self.spec["bucket"],
+                            "Key": file,
+                        },
+                        dest_remote_handler.spec["bucket"],
+                        f"{dest_remote_handler.spec['directory']}/{file_name}",
+                    )
+                except Exception as e:
+                    self.logger.error(f"Error transferring file: {file}")
+                    self.logger.error(e)
+                    result = 1
+
+            return result
 
         # Otherwise it's a bit more complicated
 

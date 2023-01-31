@@ -1,0 +1,23 @@
+{
+  "type": "transfer",
+  "source": {
+    "bucket": "otf-addons-aws-s3-test",
+    "directory": "src",
+    "fileRegex": ".*\\.txt",
+    "protocol": {
+      "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+    }
+  },
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
+    }
+  ]
+}
