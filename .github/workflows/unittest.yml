@@ -21,9 +21,6 @@ jobs:
           pip install .[dev]
           pip install -e .
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
-      - uses: isbang/compose-action@v1.4.1
-        with:
-          compose-file: "./test/docker-compose.yml"
       - name: Test with pytest
         run: |
           python -m pytest
