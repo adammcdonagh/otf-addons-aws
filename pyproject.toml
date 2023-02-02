@@ -37,7 +37,7 @@ dev = [
   "bumpver",
   "awscli",
   "awscli-local",
-  "localstack-cli",
+  "localstack-client",
   "pytest-shell",
   "lovely-pytest-docker",
 ]
