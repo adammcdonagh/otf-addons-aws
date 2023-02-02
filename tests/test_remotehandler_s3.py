@@ -227,14 +227,14 @@ def test_remote_handler():
     assert transfer_obj.dest_remote_handlers is None
 
 
-def test_s3_file_watch(setup_bucket, tmp_path, create_files):
+def test_s3_file_watch(setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer("s3-file-watch", s3_file_watch_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d")
 
     # Write a test file locally
-    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
 
     # Write the dummy file to the test S3 bucket
 
@@ -254,7 +254,7 @@ def test_s3_file_watch(setup_bucket, tmp_path, create_files):
     assert transfer_obj.run()
 
 
-def test_s3_to_s3_copy(setup_bucket, tmp_path, create_files):
+def test_s3_to_s3_copy(setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
@@ -262,7 +262,7 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path, create_files):
 
     # Write a test file locally
 
-    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
     create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
@@ -281,27 +281,27 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path, create_files):
     assert result.returncode == 0
 
 
-def test_s3_to_ssh_copy(setup_bucket, tmp_path, create_files):
+def test_s3_to_ssh_copy(setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer("s3-to-ssh", s3_to_ssh_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Write a test file locally
-    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
     create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
 
-def test_ssh_to_s3_copy(setup_bucket, root_dir, create_files):
+def test_ssh_to_s3_copy(setup_bucket, root_dir):
     transfer_obj = transfer.Transfer("ssh-to-s3", ssh_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Write a test file locally
-    create_files(
+    fs.create_files(
         [{f"{root_dir}/testFiles/ssh_2/src/{datestamp}.txt": {"content": "test1234"}}]
     )
 
