@@ -21,9 +21,6 @@ jobs:
           pip install pytest
           pip install -e .
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
-      - name: Setup test dirs
-        run: |
-          ./test/createTestDirectories.sh && ./test/createTestFiles.sh
       - uses: isbang/compose-action@v1.4.1
         with:
           compose-file: "./test/docker-compose.yml"
