@@ -37,6 +37,24 @@ s3_file_watch_task_definition = {
     },
 }
 
+s3_file_watch_custom_creds_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            "access_key_id": "test",
+            "secret_access_key": "test",
+            "region_name": "eu-west-1",
+        },
+        "fileWatch": {
+            "timeout": 10,
+            "directory": "src",
+            "fileRegex": ".*\\.txt",
+        },
+    },
+}
+
 s3_to_s3_copy_task_definition = {
     "type": "transfer",
     "source": {
@@ -199,12 +217,23 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
 
 
 @pytest.fixture(scope="session")
-def setup_bucket(localstack, setup_ssh_keys):
+def credentials(localstack):
     os.environ["AWS_ACCESS_KEY_ID"] = "test"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "test"
     os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
     os.environ["AWS_ENDPOINT_URL"] = localstack
 
+
+@pytest.fixture(scope="session")
+def cleanup_credentials():
+    del os.environ["AWS_ACCESS_KEY_ID"]
+    del os.environ["AWS_SECRET_ACCESS_KEY"]
+    del os.environ["AWS_DEFAULT_REGION"]
+    del os.environ["AWS_REGION"]
+
+
+@pytest.fixture(scope="session")
+def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
 
@@ -281,7 +310,41 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path):
     assert result.returncode == 0
 
 
-def test_s3_to_ssh_copy(setup_bucket, tmp_path):
+def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, tmp_path):
+    import copy
+
+    s3_to_s3_copy_task_definition_copy = copy.deepcopy(s3_to_s3_copy_task_definition)
+    s3_to_s3_copy_task_definition_copy["destination"][0]["protocol"][
+        "disableBucketOwnerControlACL"
+    ] = True
+    transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition_copy)
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    assert transfer_obj.run()
+
+    # Cant really test this works with localstack, since there's no actual IAM permissions set on anything
+    # Check that the file is in the destination bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/test.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+
+def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
     transfer_obj = transfer.Transfer("s3-to-ssh", s3_to_ssh_copy_task_definition)
 
     # Create a file to watch for with the current date
@@ -294,7 +357,7 @@ def test_s3_to_ssh_copy(setup_bucket, tmp_path):
     assert transfer_obj.run()
 
 
-def test_ssh_to_s3_copy(setup_bucket, root_dir):
+def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     transfer_obj = transfer.Transfer("ssh-to-s3", ssh_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
@@ -319,6 +382,22 @@ def test_ssh_to_s3_copy(setup_bucket, root_dir):
     )
     # Asset result.returncode is 0
     assert result.returncode == 0
+
+
+def test_s3_file_watch_custom_creds(setup_bucket, tmp_path, cleanup_credentials):
+    transfer_obj = transfer.Transfer(
+        "s3-file-watch-custom-creds", s3_file_watch_custom_creds_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d")
+
+    # Write a test file locally
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    # Write the dummy file to the test S3 bucket
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    assert transfer_obj.run()
 
 
 def create_s3_file(local_file, object_key):

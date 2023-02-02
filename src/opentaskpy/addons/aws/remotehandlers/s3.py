@@ -20,20 +20,33 @@ class S3Transfer(RemoteTransferHandler):
         )
 
         self.aws_access_key_id = (
-            self.spec["access_key_id"]
-            if "access_key_id" in self.spec
+            self.spec["protocol"]["access_key_id"]
+            if "access_key_id" in self.spec["protocol"]
             else os.environ.get("AWS_ACCESS_KEY_ID")
         )
         self.aws_secret_access_key = (
-            self.spec["secret_access_key"]
-            if "secret_access_key" in self.spec
+            self.spec["protocol"]["secret_access_key"]
+            if "secret_access_key" in self.spec["protocol"]
             else os.environ.get("AWS_SECRET_ACCESS_KEY")
+        )
+
+        self.region_name = (
+            self.spec["protocol"]["region_name"]
+            if "region_name" in self.spec["protocol"]
+            else os.environ.get("AWS_DEFAULT_REGION")
+        )
+
+        self.bucket_owner_full_control = (
+            self.spec["protocol"]["bucket_owner_full_control"]
+            if "bucket_owner_full_control" in self.spec["protocol"]
+            else True
         )
 
         # Use boto3 to setup the required object for the transfer
         kwargs = {
             "aws_access_key_id": self.aws_access_key_id,
             "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.region_name,
         }
         # If there's an override for endpoint_url in the environment, then use that
         if os.environ.get("AWS_ENDPOINT_URL"):
@@ -98,6 +111,10 @@ class S3Transfer(RemoteTransferHandler):
     def push_files_from_worker(self, local_staging_directory):
         result = 0
         files = glob.glob(f"{local_staging_directory}/*")
+        kwargs = {}
+        if self.bucket_owner_full_control:
+            kwargs["ACL"] = "bucket-owner-full-control"
+
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
@@ -107,6 +124,7 @@ class S3Transfer(RemoteTransferHandler):
                     file,
                     self.spec["bucket"],
                     f"{self.spec['directory']}/{file_name}",
+                    ExtraArgs=kwargs,
                 )
             except Exception as e:
                 self.logger.error(f"Failed to transfer file: {file}")
