@@ -5,7 +5,6 @@ import subprocess
 import threading
 
 import pytest
-from file_helper import BASE_DIRECTORY, create_directory, write_test_file
 from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
 
@@ -159,7 +158,6 @@ def ssh_2(docker_services):
 
 @pytest.fixture(scope="session")
 def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
-
     # Run command locally
     # if ssh key dosent exist yet
     ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
@@ -207,9 +205,6 @@ def setup_bucket(localstack, setup_ssh_keys):
     os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
     os.environ["AWS_ENDPOINT_URL"] = localstack
 
-    # Ensure the test directory exists
-    create_directory(f"{BASE_DIRECTORY}/src")
-
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
 
@@ -220,8 +215,7 @@ def setup_bucket(localstack, setup_ssh_keys):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
 
 
-def test_remote_handler(setup_bucket):
-
+def test_remote_handler():
     transfer_obj = transfer.Transfer("s3-file-watch", s3_file_watch_task_definition)
 
     transfer_obj._set_remote_handlers()
@@ -233,15 +227,14 @@ def test_remote_handler(setup_bucket):
     assert transfer_obj.dest_remote_handlers is None
 
 
-def test_s3_file_watch(setup_bucket):
-
+def test_s3_file_watch(setup_bucket, tmp_path, create_files):
     transfer_obj = transfer.Transfer("s3-file-watch", s3_file_watch_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d")
 
     # Write a test file locally
-    write_test_file(f"{BASE_DIRECTORY}/src/{datestamp}.txt", content="test1234")
+    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
 
     # Write the dummy file to the test S3 bucket
 
@@ -253,7 +246,7 @@ def test_s3_file_watch(setup_bucket):
     t = threading.Timer(
         5,
         create_s3_file,
-        [f"{BASE_DIRECTORY}/src/{datestamp}.txt", "src/test.txt"],
+        [f"{tmp_path}/{datestamp}.txt", "src/test.txt"],
     )
     t.start()
     print("Started thread - Expect file in 5 seconds, starting task-run now...")
@@ -261,16 +254,16 @@ def test_s3_file_watch(setup_bucket):
     assert transfer_obj.run()
 
 
-def test_s3_to_s3_copy(setup_bucket):
-
+def test_s3_to_s3_copy(setup_bucket, tmp_path, create_files):
     transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Write a test file locally
-    write_test_file(f"{BASE_DIRECTORY}/src/{datestamp}.txt", content="test1234")
-    create_s3_file(f"{BASE_DIRECTORY}/src/{datestamp}.txt", "src/test.txt")
+
+    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
@@ -288,31 +281,28 @@ def test_s3_to_s3_copy(setup_bucket):
     assert result.returncode == 0
 
 
-def test_s3_to_ssh_copy(setup_bucket):
-
+def test_s3_to_ssh_copy(setup_bucket, tmp_path, create_files):
     transfer_obj = transfer.Transfer("s3-to-ssh", s3_to_ssh_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Write a test file locally
-    write_test_file(f"{BASE_DIRECTORY}/src/{datestamp}.txt", content="test1234")
-    create_s3_file(f"{BASE_DIRECTORY}/src/{datestamp}.txt", "src/test.txt")
+    create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
 
-def test_ssh_to_s3_copy(setup_bucket):
-
+def test_ssh_to_s3_copy(setup_bucket, root_dir, create_files):
     transfer_obj = transfer.Transfer("ssh-to-s3", ssh_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # Write a test file locally
-    write_test_file(
-        f"test/testFiles/ssh_2/src/{datestamp}.txt",
-        content="test1234",
+    create_files(
+        [{f"{root_dir}/testFiles/ssh_2/src/{datestamp}.txt": {"content": "test1234"}}]
     )
 
     assert transfer_obj.run()
@@ -341,15 +331,3 @@ def create_s3_file(local_file, object_key):
             f"s3://{BUCKET_NAME}/{object_key}",
         ]
     )
-
-
-def tearDownClass(cls):
-    buckets = [cls.BUCKET_NAME, cls.BUCKET_NAME_2]
-    # Delete the test bucket
-    for bucket in buckets:
-        subprocess.run(["awslocal", "s3", "rb", f"s3://{bucket}", "--force"])
-
-    # Delete any temporary files created
-    dir = f"{BASE_DIRECTORY}/src"
-    if os.path.exists(dir):
-        shutil.rmtree(dir)

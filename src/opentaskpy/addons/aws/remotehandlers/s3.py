@@ -10,7 +10,6 @@ MAX_OBJECTS_PER_QUERY = 100
 
 
 class S3Transfer(RemoteTransferHandler):
-
     TASK_TYPE = "T"
 
     def __init__(self, spec):
@@ -46,7 +45,6 @@ class S3Transfer(RemoteTransferHandler):
         raise NotImplementedError()
 
     def list_files(self, directory=None, file_pattern=None):
-
         kwargs = {
             "Bucket": self.spec["bucket"],
             "MaxKeys": MAX_OBJECTS_PER_QUERY,
@@ -60,7 +58,6 @@ class S3Transfer(RemoteTransferHandler):
             response = self.s3_client.list_objects_v2(**kwargs)
 
             if response["KeyCount"]:
-
                 for object in response["Contents"]:
                     key = object["Key"]
                     # Get the filename from the key
