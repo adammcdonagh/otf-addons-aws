@@ -17,24 +17,79 @@ BUCKET_NAME = "otf-addons-aws-s3-test"
 BUCKET_NAME_2 = "otf-addons-aws-s3-test-2"
 
 
-@pytest.fixture(scope="session")
-def root_dir():
+def get_root_dir():
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test"
     )
 
 
+root_dir_ = get_root_dir()
+
 s3_file_watch_task_definition = {
     "type": "transfer",
     "source": {
         "bucket": BUCKET_NAME,
-        "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
         "fileWatch": {
             "timeout": 10,
             "directory": "src",
             "fileRegex": ".*\\.txt",
         },
     },
+}
+
+s3_age_conditions_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "fileRegex": ".*\\.txt",
+        "conditionals": {
+            "age": {
+                "gt": 10,
+                "lt": 18,
+            }
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
+s3_file_size_conditions_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "fileRegex": ".*\\.txt",
+        "conditionals": {
+            "size": {
+                "gt": 10,
+                "lt": 20,
+            }
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
 }
 
 s3_file_watch_custom_creds_task_definition = {
@@ -61,20 +116,97 @@ s3_to_s3_copy_task_definition = {
         "bucket": BUCKET_NAME,
         "directory": "src",
         "fileRegex": ".*\\.txt",
-        "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
     },
     "destination": [
         {
             "bucket": BUCKET_NAME_2,
             "directory": "dest",
-            "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
         },
     ],
 }
 
-root_dir_ = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test"
-)
+s3_to_s3_pca_delete_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "file-pca\\.txt",
+        "postCopyAction": {
+            "action": "delete",
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
+s3_to_s3_pca_move_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "file-pca\\.txt",
+        "postCopyAction": {
+            "action": "move",
+            "destination": "src/archive/",
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
+s3_to_s3_pca_rename_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "file-pca-rename-(.*)\\.txt",
+        "postCopyAction": {
+            "action": "rename",
+            "destination": "src/archive/",
+            "pattern": "file-pca-rename-(.*)\\.txt",
+            "sub": "file-pca-rename-\\1-renamed.txt",
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
 
 s3_to_ssh_copy_task_definition = {
     "type": "transfer",
@@ -86,7 +218,7 @@ s3_to_ssh_copy_task_definition = {
     },
     "destination": [
         {
-            "hostname": "172.16.0.12",
+            "hostname": "172.16.1.12",
             "directory": "/tmp/testFiles/dest",
             "protocol": {
                 "name": "ssh",
@@ -103,7 +235,7 @@ s3_to_ssh_copy_task_definition = {
 ssh_to_s3_copy_task_definition = {
     "type": "transfer",
     "source": {
-        "hostname": "172.16.0.12",
+        "hostname": "172.16.1.12",
         "directory": "/tmp/testFiles/src",
         "fileRegex": ".*\\.txt",
         "protocol": {
@@ -123,6 +255,11 @@ ssh_to_s3_copy_task_definition = {
         }
     ],
 }
+
+
+@pytest.fixture(scope="session")
+def root_dir():
+    return get_root_dir()
 
 
 @pytest.fixture(scope="session")
@@ -283,6 +420,76 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     assert transfer_obj.run()
 
 
+def test_s3_age_conditions_size(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-age-conditions", s3_age_conditions_task_definition
+    )
+
+    # Write a test file locally
+    files = [
+        {f"{tmp_path}/too_old_file.txt": {"content": "123"}},
+        {f"{tmp_path}/correct_file.txt": {"content": "123"}},
+        {f"{tmp_path}/too_new_file.txt": {"content": "123"}},
+    ]
+    fs.create_files(files)
+    import time
+
+    for file in files:
+        file_name = os.path.basename(list(file.keys())[0])
+        create_s3_file(list(file.keys())[0], f"src/{file_name}")
+        # Sleep 6 seconds
+        time.sleep(6)
+
+    assert transfer_obj.run()
+
+    # Check that only correct_file.txt is in the bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/",
+        ],
+        stdout=subprocess.PIPE,
+    )
+    assert "correct_file.txt" in result.stdout.decode("utf-8")
+    assert "too_old_file.txt" not in result.stdout.decode("utf-8")
+    assert "too_new_file.txt" not in result.stdout.decode("utf-8")
+
+
+def test_s3_file_conditions_size(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-file-size-conditions", s3_file_size_conditions_task_definition
+    )
+
+    # Write a test file locally
+    files = [
+        {f"{tmp_path}/too_small_file.txt": {"content": "1"}},
+        {f"{tmp_path}/correct_file.txt": {"content": "test12345678"}},
+        {f"{tmp_path}/too_large_file.txt": {"content": "test12345678901234567890"}},
+    ]
+    fs.create_files(files)
+    for file in files:
+        file_name = os.path.basename(list(file.keys())[0])
+        create_s3_file(list(file.keys())[0], f"src/{file_name}")
+
+    assert transfer_obj.run()
+
+    # Check that only correct_file.txt is in the bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/",
+        ],
+        stdout=subprocess.PIPE,
+    )
+    assert "correct_file.txt" in result.stdout.decode("utf-8")
+    assert "too_small_file.txt" not in result.stdout.decode("utf-8")
+    assert "too_large_file.txt" not in result.stdout.decode("utf-8")
+
+
 def test_s3_to_s3_copy(setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition)
 
@@ -342,6 +549,127 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, tmp_path):
     )
     # Asset result.returncode is 0
     assert result.returncode == 0
+
+
+def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", f"src/{datestamp}.txt")
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/{datestamp}.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+    # Check that the file is not in the source bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME}/src/{datestamp}.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 1
+    assert result.returncode == 1
+
+
+def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-to-s3-pca-move", s3_to_s3_pca_move_task_definition
+    )
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/pca-move.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/pca-move.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+    # Check that the file has been moved to archive
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME}/src/archive/pca-move.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 1
+    assert result.returncode == 1
+
+
+def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
+    )
+
+    # Write a test file locally
+    fs.create_files([{f"{tmp_path}/file-pca-rename-1234.txt": {"content": "test1234"}}])
+    create_s3_file(
+        f"{tmp_path}/file-pca-rename-1234.txt", "src/file-pca-rename-1234.txt"
+    )
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/file-pca-rename-1234.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+    # Check that the file has been moved to archive
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME}/src/archive/file-pca-rename-renamed.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 1
+    assert result.returncode == 1
 
 
 def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):

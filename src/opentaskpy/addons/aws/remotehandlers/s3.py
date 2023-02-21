@@ -55,7 +55,50 @@ class S3Transfer(RemoteTransferHandler):
         self.s3_client = boto3.client("s3", **kwargs)
 
     def handle_post_copy_action(self, files):
-        raise NotImplementedError()
+        # Determine the action to take
+        # Delete the files
+        if self.spec["postCopyAction"]["action"] == "delete":
+            self.s3_client.delete_objects(
+                Bucket=self.spec["bucket"],
+                Delete={
+                    "Objects": [{"Key": file} for file in files],
+                    "Quiet": True,
+                },
+            )
+        # Copy the files to the new location, and then delete the originals
+        if (
+            self.spec["postCopyAction"]["action"] == "move"
+            or self.spec["postCopyAction"]["action"] == "rename"
+        ):
+            for file in files:
+                # If this is a rename, then we need to determine the new key
+                new_file = file
+                if self.spec["postCopyAction"]["action"] == "rename":
+                    new_file = f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
+
+                    # Use the pattern and sub values to rename the file correctly
+                    new_file = re.sub(
+                        self.spec["postCopyAction"]["pattern"],
+                        self.spec["postCopyAction"]["sub"],
+                        new_file,
+                    )
+
+                self.s3_client.copy_object(
+                    Bucket=self.spec["bucket"],
+                    CopySource={
+                        "Bucket": self.spec["bucket"],
+                        "Key": file,
+                    },
+                    Key=f"{self.spec['postCopyAction']['destination']}/{new_file}",
+                )
+                self.s3_client.delete_objects(
+                    Bucket=self.spec["bucket"],
+                    Delete={
+                        "Objects": [{"Key": file}],
+                        "Quiet": True,
+                    },
+                )
+        return 0
 
     def list_files(self, directory=None, file_pattern=None):
         kwargs = {
@@ -118,7 +161,9 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
-            self.logger.debug(f"Transferring file: {file}")
+            self.logger.debug(
+                f"Transferring file: {file} to s3://{self.spec['bucket']}/{file_name}"
+            )
             try:
                 self.s3_client.upload_file(
                     file,

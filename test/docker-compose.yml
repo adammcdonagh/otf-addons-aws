@@ -19,12 +19,12 @@ services:
     image: webdevops/ssh
     restart: always
     hostname: ssh_1
-    container_name: ssh_1
+    container_name: otf-addons-aws-ssh_1
     ports:
-      - "127.0.0.1:2221:22"
+      - "127.0.0.1:3221:22"
     networks:
-      test-network:
-        ipv4_address: 172.16.0.11
+      otf-addons-aws-test-network:
+        ipv4_address: 172.16.1.11
     volumes:
       - ./testFiles/ssh_1:/tmp/testFiles
 
@@ -32,20 +32,20 @@ services:
     image: webdevops/ssh
     restart: always
     hostname: ssh_2
-    container_name: ssh_2
+    container_name: otf-addons-aws-ssh_2
     ports:
-      - "127.0.0.1:2222:22"
+      - "127.0.0.1:3222:22"
     networks:
-      test-network:
-        ipv4_address: 172.16.0.12
+      otf-addons-aws-test-network:
+        ipv4_address: 172.16.1.12
     volumes:
       - ./testFiles/ssh_2:/tmp/testFiles
 
 networks:
-  test-network:
+  otf-addons-aws-test-network:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.16.0.0/24
-          gateway: 172.16.0.1
+        - subnet: 172.16.1.0/24
+          gateway: 172.16.1.1
