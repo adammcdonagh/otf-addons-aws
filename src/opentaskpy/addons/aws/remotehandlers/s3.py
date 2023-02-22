@@ -4,9 +4,37 @@ import re
 
 import boto3
 import opentaskpy.logging
-from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
+from opentaskpy.remotehandlers.remotehandler import (
+    RemoteExecutionHandler,
+    RemoteTransferHandler,
+)
 
 MAX_OBJECTS_PER_QUERY = 100
+
+
+def set_aws_creds(obj):
+    obj.aws_access_key_id = (
+        obj.spec["protocol"]["access_key_id"]
+        if "access_key_id" in obj.spec["protocol"]
+        else os.environ.get("AWS_ACCESS_KEY_ID")
+    )
+    obj.aws_secret_access_key = (
+        obj.spec["protocol"]["secret_access_key"]
+        if "secret_access_key" in obj.spec["protocol"]
+        else os.environ.get("AWS_SECRET_ACCESS_KEY")
+    )
+
+    obj.region_name = (
+        obj.spec["protocol"]["region_name"]
+        if "region_name" in obj.spec["protocol"]
+        else os.environ.get("AWS_REGION")
+    )
+
+    obj.bucket_owner_full_control = (
+        obj.spec["protocol"]["bucket_owner_full_control"]
+        if "bucket_owner_full_control" in obj.spec["protocol"]
+        else True
+    )
 
 
 class S3Transfer(RemoteTransferHandler):
@@ -19,28 +47,7 @@ class S3Transfer(RemoteTransferHandler):
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
-        self.aws_access_key_id = (
-            self.spec["protocol"]["access_key_id"]
-            if "access_key_id" in self.spec["protocol"]
-            else os.environ.get("AWS_ACCESS_KEY_ID")
-        )
-        self.aws_secret_access_key = (
-            self.spec["protocol"]["secret_access_key"]
-            if "secret_access_key" in self.spec["protocol"]
-            else os.environ.get("AWS_SECRET_ACCESS_KEY")
-        )
-
-        self.region_name = (
-            self.spec["protocol"]["region_name"]
-            if "region_name" in self.spec["protocol"]
-            else os.environ.get("AWS_DEFAULT_REGION")
-        )
-
-        self.bucket_owner_full_control = (
-            self.spec["protocol"]["bucket_owner_full_control"]
-            if "bucket_owner_full_control" in self.spec["protocol"]
-            else True
-        )
+        set_aws_creds(self)
 
         # Use boto3 to setup the required object for the transfer
         kwargs = {
@@ -201,29 +208,102 @@ class S3Transfer(RemoteTransferHandler):
         # Check the remote handler, if it's another S3Transfer, then it's simple
         # to do an S3 copy via boto
 
-        if isinstance(dest_remote_handler, S3Transfer):
-            result = 0
-            for file in files:
-                # Strip the directory from the file
-                file_name = file.split("/")[-1]
-                self.logger.debug(f"Transferring file: {file}")
-                try:
-                    self.s3_client.copy(
-                        {
-                            "Bucket": self.spec["bucket"],
-                            "Key": file,
-                        },
-                        dest_remote_handler.spec["bucket"],
-                        f"{dest_remote_handler.spec['directory']}/{file_name}",
-                    )
-                except Exception as e:
-                    self.logger.error(f"Error transferring file: {file}")
-                    self.logger.error(e)
-                    result = 1
+        result = 0
+        for file in files:
+            # Strip the directory from the file
+            file_name = file.split("/")[-1]
+            self.logger.debug(f"Transferring file: {file}")
+            try:
+                self.s3_client.copy(
+                    {
+                        "Bucket": self.spec["bucket"],
+                        "Key": file,
+                    },
+                    dest_remote_handler.spec["bucket"],
+                    f"{dest_remote_handler.spec['directory']}/{file_name}",
+                )
+            except Exception as e:
+                self.logger.error(f"Error transferring file: {file}")
+                self.logger.error(e)
+                result = 1
 
-            return result
+        return result
 
-        # Otherwise it's a bit more complicated
+    def create_flag_files(self):
+        result = 0
+
+        object_key = self.spec["flags"]["fullPath"]
+        self.logger.debug(f"Creating flag file: {object_key}")
+        kwargs = {
+            "Bucket": self.spec["bucket"],
+            "Key": object_key,
+        }
+        if self.bucket_owner_full_control:
+            kwargs["ACL"] = "bucket-owner-full-control"
+
+        try:
+            self.s3_client.put_object(**kwargs)
+        except Exception as e:
+            self.logger.error(f"Error creating flag file: {object_key}")
+            self.logger.error(e)
+            result = 1
+
+        return result
 
     def tidy(self):
         self.s3_client.close()
+
+
+class S3Execution(RemoteExecutionHandler):
+    TASK_TYPE = "E"
+
+    def tidy(self):
+        self.s3_client.close()
+
+    def __init__(self, spec):
+        self.spec = spec
+
+        self.logger = opentaskpy.logging.init_logging(
+            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+        )
+
+        set_aws_creds(self)
+
+        # Use boto3 to setup the required object
+        kwargs = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.region_name,
+        }
+        # If there's an override for endpoint_url in the environment, then use that
+        if os.environ.get("AWS_ENDPOINT_URL"):
+            kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+
+        self.s3_client = boto3.client("s3", **kwargs)
+
+    # This cannot be long running, so kill doesnt really need to do anything
+    def kill(self):
+        pass
+
+    def execute(self):
+        result = True
+
+        object_key = self.spec["key"]
+        bucket = self.spec["bucket"]
+
+        kwargs = {
+            "Bucket": bucket,
+            "Key": object_key,
+        }
+        if self.bucket_owner_full_control:
+            kwargs["ACL"] = "bucket-owner-full-control"
+
+        # Use the boto client to write a blank file with this name to the bucket
+        try:
+            self.s3_client.put_object(**kwargs)
+        except Exception as e:
+            self.logger.error(f"Failed to create flag file: {object_key}")
+            self.logger.error(e)
+            result = False
+
+        return result
