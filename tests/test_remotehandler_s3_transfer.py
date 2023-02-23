@@ -5,6 +5,7 @@ import subprocess
 import threading
 
 import pytest
+from fixtures.localstack import *  # noqa:F401
 from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
 
@@ -15,12 +16,6 @@ os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
 BUCKET_NAME = "otf-addons-aws-s3-test"
 BUCKET_NAME_2 = "otf-addons-aws-s3-test-2"
-
-
-def get_root_dir():
-    return os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test"
-    )
 
 
 root_dir_ = get_root_dir()
@@ -124,6 +119,30 @@ s3_to_s3_copy_task_definition = {
         {
             "bucket": BUCKET_NAME_2,
             "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
+s3_to_s3_copy_with_fin_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": ".*\\.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "flags": {
+                "fullPath": "dest/my_fin.fin",
+            },
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
@@ -258,11 +277,6 @@ ssh_to_s3_copy_task_definition = {
 
 
 @pytest.fixture(scope="session")
-def root_dir():
-    return get_root_dir()
-
-
-@pytest.fixture(scope="session")
 def test_files(root_dir):
     # Get the root directory of the project
 
@@ -277,22 +291,6 @@ def test_files(root_dir):
         f"{root_dir}/testFiles/ssh_2/archive",
     ]
     fs.create_files(structure)
-
-
-@pytest.fixture(scope="session")
-def docker_compose_files(root_dir):
-    """Get the docker-compose.yml absolute path."""
-    return [
-        f"{root_dir}/docker-compose.yml",
-    ]
-
-
-@pytest.fixture(scope="session")
-def localstack(docker_services):
-    docker_services.start("localstack")
-    public_port = docker_services.wait_for_service("localstack", 4566)
-    url = f"http://{docker_services.docker_ip}:{public_port}"
-    return url
 
 
 @pytest.fixture(scope="session")
@@ -351,22 +349,6 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
     for host in ["ssh_1", "ssh_2"]:
         for command in commands:
             docker_services.execute(host, *command)
-
-
-@pytest.fixture(scope="session")
-def credentials(localstack):
-    os.environ["AWS_ACCESS_KEY_ID"] = "test"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "test"
-    os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
-    os.environ["AWS_ENDPOINT_URL"] = localstack
-
-
-@pytest.fixture(scope="session")
-def cleanup_credentials():
-    del os.environ["AWS_ACCESS_KEY_ID"]
-    del os.environ["AWS_SECRET_ACCESS_KEY"]
-    del os.environ["AWS_DEFAULT_REGION"]
-    del os.environ["AWS_REGION"]
 
 
 @pytest.fixture(scope="session")
@@ -510,6 +492,48 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path):
             "s3",
             "ls",
             f"s3://{BUCKET_NAME_2}/dest/test.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+
+def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        "s3-to-s3-with-fin", s3_to_s3_copy_with_fin_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/test.txt",
+        ],
+        capture_output=True,
+    )
+    # Asset result.returncode is 0
+    assert result.returncode == 0
+
+    # Make sure that the fin file has been created
+    result = subprocess.run(
+        [
+            "awslocal",
+            "s3",
+            "ls",
+            f"s3://{BUCKET_NAME_2}/dest/my_fin.fin",
         ],
         capture_output=True,
     )

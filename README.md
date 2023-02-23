@@ -1,5 +1,5 @@
 
-![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/unittest.yml/badge.svg?event=push) ![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/linting.yml/badge.svg?event=push)
+![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/unittest.yml/badge.svg?event=push) ![linting status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/linting.yml/badge.svg?event=push)
 
 This repository contains addons to allow integration with AWS components via [Open Task Framework (OTF)](https://github.com/adammcdonagh/open-task-framework)
 
@@ -34,8 +34,9 @@ As part of the upload, the `bucket-owner-full-control` ACL flag is applied to al
 ### Supported features
    * Plain file watch
    * File watch/transfer with file size and age constraints
-   * `move` & `delete` post copy actions (TODO)
-   * Touching empty files with no source. e.g. `.fin` files used as completion flags (TODO)
+   * `move` & `delete` post copy actions
+   * Touching empty files after transfer. e.g. `.fin` files used as completion flags
+   * Touching empty files as an execution
 
 ### Limitations
    * No support for log watch
@@ -84,4 +85,32 @@ JSON configs for transfers can be defined as follows:
         }
     }
 ]
+```
+
+## Example S3 upload with flag files
+```json
+"destination": [
+    {
+        "bucket": "some-bucket",
+        "directory": "dest",
+        "flag": {
+          "fullPath": "dest/some_fin.flg"
+        }
+        "protocol": {
+          "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+        }
+    }
+]
+```
+
+## Example S3 Execution touch flag file
+```json
+{
+  "type": "execution",
+  "bucket": "test-bucket",
+  "key": "test_key.flg",
+  "protocol": {
+    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+  }
+}
 ```

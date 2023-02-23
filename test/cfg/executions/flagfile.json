@@ -1,0 +1,8 @@
+{
+  "type": "execution",
+  "bucket": "test-bucket",
+  "key": "test_key.flg",
+  "protocol": {
+    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+  }
+}
