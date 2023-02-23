@@ -1,10 +1,13 @@
+import json
 import logging
 
 import pytest
 from botocore.exceptions import ClientError
 from fixtures.localstack import *  # noqa:F401
+from opentaskpy.config.loader import ConfigLoader
+from pytest_shell import fs
 
-from opentaskpy.addons.aws.plugins.lookup.ssm import run
+from opentaskpy.plugins.lookup.aws.ssm import run
 
 PLUGIN_NAME = "ssm"
 
@@ -58,3 +61,36 @@ def test_ssm_plugin_secure_string(ssm_client):
     result = run(name="my_secure_test_param")
 
     assert result == expected
+
+
+def test_config_loader_using_ssm_plugin(ssm_client, tmpdir):
+
+    json_obj = {
+        "testLookup": "{{ lookup('aws.ssm', name='my_test_param') }}",
+    }
+
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": json.dumps(json_obj),
+                }
+            },
+        ]
+    )
+    expected_result = "config_loader_test_1234"
+
+    # Insert the param into paramstore
+    ssm_client.put_parameter(
+        Name="my_test_param",
+        Value=expected_result,
+        Type="String",
+        Overwrite=True,
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+    config_loader._load_global_variables()
+    config_loader._resolve_templated_variables()
+
+    assert config_loader.get_global_variables()["testLookup"] == expected_result
