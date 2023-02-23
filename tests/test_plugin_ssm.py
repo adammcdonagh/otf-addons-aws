@@ -64,7 +64,6 @@ def test_ssm_plugin_secure_string(ssm_client):
 
 
 def test_config_loader_using_ssm_plugin(ssm_client, tmpdir):
-
     json_obj = {
         "testLookup": "{{ lookup('aws.ssm', name='my_test_param') }}",
     }
