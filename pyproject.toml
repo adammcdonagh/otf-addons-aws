@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otf-addons-aws"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
@@ -50,7 +50,7 @@ dev = [
 profile = 'black'
 
 [tool.bumpver]
-current_version = "0.1.0"
+current_version = "0.2.0"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -62,8 +62,3 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
-"setup.py" = [
-    "{version}",
-    "{pep440_version}",
-]
-
