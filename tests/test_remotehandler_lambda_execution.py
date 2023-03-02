@@ -19,6 +19,8 @@ os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
 BUCKET_NAME = "otf-addons-aws-lambda-execution-test"
+BUCKET_NAME_1 = "otf-addons-aws-lambda-execution-test-1"
+BUCKET_NAME_2 = "otf-addons-aws-lambda-execution-test-2"
 logger = opentaskpy.logging.init_logging(__name__)
 
 logger.setLevel(logging.DEBUG)
@@ -94,12 +96,12 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
     return function_arn
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
 
-    buckets = [BUCKET_NAME]
+    buckets = [BUCKET_NAME, BUCKET_NAME_1, BUCKET_NAME_2]
     # Delete existing buckets and recreate
     for bucket in buckets:
         subprocess.run(["awslocal", "s3", "rb", f"s3://{bucket}", "--force"])
@@ -149,11 +151,13 @@ def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
     assert ex.value.response["Error"]["Code"] == "404"
 
     # Update the task definition with the ARN of the function we just created
-    lambda_execution_task_definition["functionArn"] = function_arn
+    lambda_execution_task_definition_copy = lambda_execution_task_definition.copy()
+    lambda_execution_task_definition_copy["functionArn"] = function_arn
+    lambda_execution_task_definition_copy["payload"]["bucket"] = BUCKET_NAME
 
     # Call the execution and check whether the lambda function ran successfully
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition
+        "call-lambda-function", lambda_execution_task_definition_copy
     )
 
     logging.getLogger("boto3").setLevel(logging.DEBUG)
@@ -173,9 +177,14 @@ def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
 
     # Invoke it again, but using the RequestResponse invocation type
     # This should return a 200 response
-    lambda_execution_task_definition["invocationType"] = "RequestResponse"
+
+    # clone lambda_execution_task_definition
+    lambda_execution_task_definition_copy = lambda_execution_task_definition.copy()
+    lambda_execution_task_definition_copy["functionArn"] = function_arn
+    lambda_execution_task_definition_copy["payload"]["bucket"] = BUCKET_NAME
+    lambda_execution_task_definition_copy["invocationType"] = "RequestResponse"
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition
+        "call-lambda-function", lambda_execution_task_definition_copy
     )
     assert execution_obj.run()
 
@@ -186,7 +195,7 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
         lambda_client,
         "lambda_write_to_s3.py",
         {
-            "bucket_name": "otf-addons-aws-lambda-execution-test",
+            "bucket_name": BUCKET_NAME_1,
             "file_name": "function_test.txt",
         },
     )
@@ -198,7 +207,6 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     lambda_execution_task_definition_invalid_payload["functionArn"] = function_arn
     # Remove the payload from the definition
     lambda_execution_task_definition_invalid_payload.pop("payload")
-
     lambda_execution_task_definition_invalid_payload[
         "invocationType"
     ] = "RequestResponse"
