@@ -27,5 +27,28 @@
       },
       "justMyCode": false
     },
+    {
+      "name": "Python: Lambda Timeout",
+      "type": "python",
+      "request": "launch",
+      // "preLaunchTask": "Build Test containers",
+      "program": "../open-task-framework/src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch_lambda_timeout",
+        "-v",
+        "3",
+        "-c",
+        "test/cfg"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "test",
+        "AWS_SECRET_ACCESS_KEY": "test",
+        "AWS_DEFAULT_REGION": "eu-west-1",
+        "AWS_ENDPOINT_URL": "http://localhost:4566",
+      },
+      "justMyCode": false
+    },
   ]
 }

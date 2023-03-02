@@ -1,0 +1,8 @@
+{
+  "type": "execution",
+  "functionArn": "arn:aws:lambda:eu-west-1:000000000000:function:my-function",
+  "invocationType": "Event",
+  "protocol": {
+    "name": "opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"
+  }
+}

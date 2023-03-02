@@ -8,6 +8,7 @@ Open Task Framework (OTF) is a Python based framework to make it easy to run pre
 These addons include several additional features:
   * A new plugin for SSM Param Store to pull dynamic variables
   * A new remotehandler to push/pull files via AWS S3
+  * A new remote handler to trigger AWS Lambda functions
 
 # AWS Credentials
 
@@ -103,6 +104,19 @@ JSON configs for transfers can be defined as follows:
 ]
 ```
 
+# Executions
+
+The Lambda remote handler allows AWS Lambda functions to be called. When provided with a `functionArn` the function will be called with no parameters. If there's a payload to pass in, use the `payload` attribute in the execution definition to specify a JSON object to pass into the function.
+
+## Asynchronous vs Synchronous Execution
+
+Lambda functions can be called with either an `invocationType` of `Event` (default if not specified) or `RequestResponse`. 
+
+`Event` is asynchronous, and tells the Lambda function to trigger, but does not check that it ran successfully. This means it's up to you to make sure that you have appropriate monitoring of your Lambda functions.
+
+`RequestResponse` will block until the Lambda function either completes, or times out. Boto3 has a timeout of 60 seconds, so this cannot be used for long running functions (over 1 minute). This also causes issues when used in conjunction with batches and timeouts. Since the request blocks, the thread cannot be killed by the batch thread, meaning that it will block any further execution until 60 seconds after triggering the lambda function.
+
+
 ## Example S3 Execution touch flag file
 ```json
 {
@@ -111,6 +125,21 @@ JSON configs for transfers can be defined as follows:
   "key": "test_key.flg",
   "protocol": {
     "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+  }
+}
+```
+
+## Example Lambda function call
+```json
+{
+  "type": "execution",
+  "functionArn": "arn:aws:lambda:eu-west-1:000000000000:function:my-function",
+  "invocationType": "Event",
+  "payload": {
+    "file-name": "some_file.txt"
+  },
+  "protocol": {
+    "name": "opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"
   }
 }
 ```
