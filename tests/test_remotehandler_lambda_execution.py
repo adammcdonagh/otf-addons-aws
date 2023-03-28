@@ -108,7 +108,10 @@ def setup_bucket(credentials):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
 
 
-def test_remote_handler():
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
+def test_remote_handler(credentials):
     execution_obj = execution.Execution(
         None, "call-lambda-function", lambda_execution_task_definition
     )
