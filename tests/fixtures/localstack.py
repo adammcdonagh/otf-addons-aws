@@ -5,6 +5,12 @@ import pytest
 from localstack.utils.bootstrap import LocalstackContainerServer
 
 
+def github_actions():
+    if os.getenv("GITHUB_ACTIONS"):
+        return True
+    return False
+
+
 def get_root_dir():
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -28,10 +34,9 @@ def docker_compose_files(root_dir):
 @pytest.fixture(scope="session")
 def localstack():
     server = LocalstackContainerServer()
-    assert not server.is_up()
-
-    server.start()
-    assert server.wait_is_up(60)
+    if not server.is_up():
+        server.start()
+        assert server.wait_is_up(60)
 
     return "http://localhost:4566"
 

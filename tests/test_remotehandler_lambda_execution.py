@@ -119,6 +119,9 @@ def test_remote_handler():
     assert execution_obj.remote_handlers[0].__class__.__name__ == "LambdaExecution"
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
     function_arn = create_lambda_function(
         lambda_client,
@@ -189,6 +192,9 @@ def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
     assert execution_obj.run()
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_run_lambda_function_with_invalid_payload(lambda_client):
     # Create the lambda function
     function_arn = create_lambda_function(
@@ -228,6 +234,9 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     assert execution_obj.run()
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
     # Create the function, but dont invoke it, as it runs too long
     function_arn = create_lambda_function(

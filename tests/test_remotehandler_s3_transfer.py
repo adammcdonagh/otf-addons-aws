@@ -385,6 +385,9 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
 
 
 @pytest.fixture(scope="session")
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
@@ -410,6 +413,9 @@ def test_remote_handler(s3_file_watch_task_definition):
     assert transfer_obj.dest_remote_handlers is None
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_file_watch(setup_bucket, tmp_path, s3_file_watch_task_definition):
     transfer_obj = transfer.Transfer(
         None, "s3-file-watch", s3_file_watch_task_definition
@@ -439,6 +445,9 @@ def test_s3_file_watch(setup_bucket, tmp_path, s3_file_watch_task_definition):
     assert transfer_obj.run()
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_age_conditions_size(
     setup_bucket, tmp_path, s3_age_conditions_task_definition
 ):
@@ -478,6 +487,9 @@ def test_s3_age_conditions_size(
     assert "too_new_file.txt" not in result.stdout.decode("utf-8")
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_file_conditions_size(
     setup_bucket, tmp_path, s3_file_size_conditions_task_definition
 ):
@@ -513,6 +525,9 @@ def test_s3_file_conditions_size(
     assert "too_large_file.txt" not in result.stdout.decode("utf-8")
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_copy(setup_bucket, tmp_path, s3_to_s3_copy_task_definition):
     transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
 
@@ -540,6 +555,9 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path, s3_to_s3_copy_task_definition):
     assert result.returncode == 0
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_with_fin_copy(
     setup_bucket, tmp_path, s3_to_s3_copy_with_fin_task_definition
 ):
@@ -584,6 +602,9 @@ def test_s3_to_s3_with_fin_copy(
     assert result.returncode == 0
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_copy_disable_bucket_owner_acl(
     setup_bucket, tmp_path, s3_to_s3_copy_task_definition
 ):
@@ -617,6 +638,9 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(
     assert result.returncode == 0
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_copy_pca_delete(
     setup_bucket, tmp_path, s3_to_s3_pca_delete_task_definition
 ):
@@ -661,6 +685,9 @@ def test_s3_to_s3_copy_pca_delete(
     assert result.returncode == 1
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_copy_pca_move(
     setup_bucket, tmp_path, s3_to_s3_pca_move_task_definition
 ):
@@ -702,6 +729,9 @@ def test_s3_to_s3_copy_pca_move(
     assert result.returncode == 1
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_s3_copy_pca_rename(
     setup_bucket, tmp_path, s3_to_s3_pca_rename_task_definition
 ):
@@ -744,6 +774,9 @@ def test_s3_to_s3_copy_pca_rename(
     assert result.returncode == 1
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_to_ssh_copy(
     setup_bucket, tmp_path, setup_ssh_keys, s3_to_ssh_copy_task_definition
 ):
@@ -759,6 +792,9 @@ def test_s3_to_ssh_copy(
     assert transfer_obj.run()
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_ssh_to_s3_copy(
     setup_bucket, root_dir, setup_ssh_keys, ssh_to_s3_copy_task_definition
 ):
@@ -788,6 +824,9 @@ def test_ssh_to_s3_copy(
     assert result.returncode == 0
 
 
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
 def test_s3_file_watch_custom_creds(
     setup_bucket,
     tmp_path,
