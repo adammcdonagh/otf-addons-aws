@@ -587,7 +587,6 @@ def test_s3_to_s3_with_fin_copy(
 def test_s3_to_s3_copy_disable_bucket_owner_acl(
     setup_bucket, tmp_path, s3_to_s3_copy_task_definition
 ):
-
     s3_to_s3_copy_task_definition["destination"][0]["protocol"][
         "disableBucketOwnerControlACL"
     ] = True
