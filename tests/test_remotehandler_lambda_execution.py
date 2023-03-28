@@ -96,7 +96,7 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
     return function_arn
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed

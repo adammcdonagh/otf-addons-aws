@@ -50,7 +50,7 @@ jobs:
           pytest --keepalive tests/test_localstack.py
       - name: Test with pytest
         run: |
-          python -m pytest
+          pytest --keepalive
           
   changelog:
     name: Check Changelog
