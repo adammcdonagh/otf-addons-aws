@@ -45,9 +45,6 @@ jobs:
           pip install .[dev]
           pip install -e .
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
-      - name: Spin up localstack
-        run: |
-          pytest --keepalive tests/test_localstack.py
       - name: Test with pytest
         run: |
           pytest --keepalive
