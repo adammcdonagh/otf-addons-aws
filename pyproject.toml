@@ -45,6 +45,7 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/adammcdonagh/otf-addons-aws"
 "Bug Tracker" = "https://github.com/adammcdonagh/otf-addons-aws/issues"
+"Changelog" = "https://github.com/adammcdonagh/otf-addons-aws/blob/main/CHANGELOG.md"
 
 [tool.isort]
 profile = 'black'
