@@ -20,225 +20,274 @@ BUCKET_NAME_2 = "otf-addons-aws-s3-test-2"
 
 root_dir_ = get_root_dir()
 
-s3_file_watch_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+
+@pytest.fixture(scope="function")
+def s3_file_watch_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+            "fileWatch": {
+                "timeout": 10,
+                "directory": "src",
+                "fileRegex": ".*\\.txt",
+            },
         },
-        "fileWatch": {
-            "timeout": 10,
+    }
+
+
+@pytest.fixture(scope="function")
+def s3_age_conditions_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "fileRegex": ".*\\.txt",
+            "conditionals": {
+                "age": {
+                    "gt": 10,
+                    "lt": 18,
+                }
+            },
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture(scope="function")
+def s3_file_size_conditions_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "fileRegex": ".*\\.txt",
+            "conditionals": {
+                "size": {
+                    "gt": 10,
+                    "lt": 20,
+                }
+            },
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture(scope="function")
+def s3_file_watch_custom_creds_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                "access_key_id": "test",
+                "secret_access_key": "test",
+                "region_name": "eu-west-1",
+            },
+            "fileWatch": {
+                "timeout": 10,
+                "directory": "src",
+                "fileRegex": ".*\\.txt",
+            },
+        },
+    }
+
+
+@pytest.fixture(scope="function")
+def s3_to_s3_copy_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
             "directory": "src",
             "fileRegex": ".*\\.txt",
-        },
-    },
-}
-
-s3_age_conditions_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "fileRegex": ".*\\.txt",
-        "conditionals": {
-            "age": {
-                "gt": 10,
-                "lt": 18,
-            }
-        },
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
         },
-    ],
-}
-
-s3_file_size_conditions_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "fileRegex": ".*\\.txt",
-        "conditionals": {
-            "size": {
-                "gt": 10,
-                "lt": 20,
-            }
-        },
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
-            "protocol": {
-                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
             },
-        },
-    ],
-}
+        ],
+    }
 
-s3_file_watch_custom_creds_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-            "access_key_id": "test",
-            "secret_access_key": "test",
-            "region_name": "eu-west-1",
-        },
-        "fileWatch": {
-            "timeout": 10,
+
+@pytest.fixture(scope="function")
+def s3_to_s3_copy_with_fin_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
             "directory": "src",
             "fileRegex": ".*\\.txt",
-        },
-    },
-}
-
-s3_to_s3_copy_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": ".*\\.txt",
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
         },
-    ],
-}
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "flags": {
+                    "fullPath": "dest/my_fin.fin",
+                },
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
+            },
+        ],
+    }
 
-s3_to_s3_copy_with_fin_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": ".*\\.txt",
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
-            "flags": {
-                "fullPath": "dest/my_fin.fin",
+
+@pytest.fixture(scope="function")
+def s3_to_s3_pca_delete_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "directory": "src",
+            "fileRegex": "file-pca\\.txt",
+            "postCopyAction": {
+                "action": "delete",
             },
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
         },
-    ],
-}
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
+            },
+        ],
+    }
 
-s3_to_s3_pca_delete_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": "file-pca\\.txt",
-        "postCopyAction": {
-            "action": "delete",
-        },
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
+
+@pytest.fixture(scope="function")
+def s3_to_s3_pca_move_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "directory": "src",
+            "fileRegex": "file-pca\\.txt",
+            "postCopyAction": {
+                "action": "move",
+                "destination": "src/archive/",
+            },
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
         },
-    ],
-}
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
+            },
+        ],
+    }
 
-s3_to_s3_pca_move_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": "file-pca\\.txt",
-        "postCopyAction": {
-            "action": "move",
-            "destination": "src/archive/",
-        },
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
+
+@pytest.fixture(scope="function")
+def s3_to_s3_pca_rename_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "directory": "src",
+            "fileRegex": "file-pca-rename-(.*)\\.txt",
+            "postCopyAction": {
+                "action": "rename",
+                "destination": "src/archive/",
+                "pattern": "file-pca-rename-(.*)\\.txt",
+                "sub": "file-pca-rename-\\1-renamed.txt",
+            },
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
         },
-    ],
-}
-
-s3_to_s3_pca_rename_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": "file-pca-rename-(.*)\\.txt",
-        "postCopyAction": {
-            "action": "rename",
-            "destination": "src/archive/",
-            "pattern": "file-pca-rename-(.*)\\.txt",
-            "sub": "file-pca-rename-\\1-renamed.txt",
-        },
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-        },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME_2,
-            "directory": "dest",
-            "protocol": {
-                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "destination": [
+            {
+                "bucket": BUCKET_NAME_2,
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                },
             },
+        ],
+    }
+
+
+@pytest.fixture(scope="function")
+def s3_to_ssh_copy_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
+            "bucket": BUCKET_NAME,
+            "directory": "src",
+            "fileRegex": ".*\\.txt",
+            "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
         },
-    ],
-}
+        "destination": [
+            {
+                "hostname": "172.16.1.12",
+                "directory": "/tmp/testFiles/dest",
+                "protocol": {
+                    "name": "ssh",
+                    "credentials": {
+                        "username": "application",
+                        "keyFile": f"{root_dir_}/testFiles/id_rsa",
+                    },
+                },
+            }
+        ],
+    }
 
 
-s3_to_ssh_copy_task_definition = {
-    "type": "transfer",
-    "source": {
-        "bucket": BUCKET_NAME,
-        "directory": "src",
-        "fileRegex": ".*\\.txt",
-        "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
-    },
-    "destination": [
-        {
+@pytest.fixture(scope="function")
+def ssh_to_s3_copy_task_definition():
+    return {
+        "type": "transfer",
+        "source": {
             "hostname": "172.16.1.12",
-            "directory": "/tmp/testFiles/dest",
+            "directory": "/tmp/testFiles/src",
+            "fileRegex": ".*\\.txt",
             "protocol": {
                 "name": "ssh",
                 "credentials": {
@@ -246,34 +295,18 @@ s3_to_ssh_copy_task_definition = {
                     "keyFile": f"{root_dir_}/testFiles/id_rsa",
                 },
             },
-        }
-    ],
-}
-
-
-ssh_to_s3_copy_task_definition = {
-    "type": "transfer",
-    "source": {
-        "hostname": "172.16.1.12",
-        "directory": "/tmp/testFiles/src",
-        "fileRegex": ".*\\.txt",
-        "protocol": {
-            "name": "ssh",
-            "credentials": {
-                "username": "application",
-                "keyFile": f"{root_dir_}/testFiles/id_rsa",
-            },
         },
-    },
-    "destination": [
-        {
-            "bucket": BUCKET_NAME,
-            "directory": "dest",
-            "fileRegex": ".*\\.txt",
-            "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
-        }
-    ],
-}
+        "destination": [
+            {
+                "bucket": BUCKET_NAME,
+                "directory": "dest",
+                "fileRegex": ".*\\.txt",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"
+                },
+            }
+        ],
+    }
 
 
 @pytest.fixture(scope="session")
@@ -363,8 +396,10 @@ def setup_bucket(credentials):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
 
 
-def test_remote_handler():
-    transfer_obj = transfer.Transfer("s3-file-watch", s3_file_watch_task_definition)
+def test_remote_handler(s3_file_watch_task_definition):
+    transfer_obj = transfer.Transfer(
+        None, "s3-file-watch", s3_file_watch_task_definition
+    )
 
     transfer_obj._set_remote_handlers()
 
@@ -375,8 +410,10 @@ def test_remote_handler():
     assert transfer_obj.dest_remote_handlers is None
 
 
-def test_s3_file_watch(setup_bucket, tmp_path):
-    transfer_obj = transfer.Transfer("s3-file-watch", s3_file_watch_task_definition)
+def test_s3_file_watch(setup_bucket, tmp_path, s3_file_watch_task_definition):
+    transfer_obj = transfer.Transfer(
+        None, "s3-file-watch", s3_file_watch_task_definition
+    )
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d")
@@ -402,9 +439,11 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     assert transfer_obj.run()
 
 
-def test_s3_age_conditions_size(setup_bucket, tmp_path):
+def test_s3_age_conditions_size(
+    setup_bucket, tmp_path, s3_age_conditions_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-age-conditions", s3_age_conditions_task_definition
+        None, "s3-age-conditions", s3_age_conditions_task_definition
     )
 
     # Write a test file locally
@@ -439,9 +478,11 @@ def test_s3_age_conditions_size(setup_bucket, tmp_path):
     assert "too_new_file.txt" not in result.stdout.decode("utf-8")
 
 
-def test_s3_file_conditions_size(setup_bucket, tmp_path):
+def test_s3_file_conditions_size(
+    setup_bucket, tmp_path, s3_file_size_conditions_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-file-size-conditions", s3_file_size_conditions_task_definition
+        None, "s3-file-size-conditions", s3_file_size_conditions_task_definition
     )
 
     # Write a test file locally
@@ -472,8 +513,8 @@ def test_s3_file_conditions_size(setup_bucket, tmp_path):
     assert "too_large_file.txt" not in result.stdout.decode("utf-8")
 
 
-def test_s3_to_s3_copy(setup_bucket, tmp_path):
-    transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition)
+def test_s3_to_s3_copy(setup_bucket, tmp_path, s3_to_s3_copy_task_definition):
+    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -499,9 +540,11 @@ def test_s3_to_s3_copy(setup_bucket, tmp_path):
     assert result.returncode == 0
 
 
-def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path):
+def test_s3_to_s3_with_fin_copy(
+    setup_bucket, tmp_path, s3_to_s3_copy_with_fin_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-to-s3-with-fin", s3_to_s3_copy_with_fin_task_definition
+        None, "s3-to-s3-with-fin", s3_to_s3_copy_with_fin_task_definition
     )
 
     # Create a file to watch for with the current date
@@ -541,14 +584,15 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path):
     assert result.returncode == 0
 
 
-def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, tmp_path):
+def test_s3_to_s3_copy_disable_bucket_owner_acl(
+    setup_bucket, tmp_path, s3_to_s3_copy_task_definition
+):
     import copy
 
-    s3_to_s3_copy_task_definition_copy = copy.deepcopy(s3_to_s3_copy_task_definition)
-    s3_to_s3_copy_task_definition_copy["destination"][0]["protocol"][
+    s3_to_s3_copy_task_definition["destination"][0]["protocol"][
         "disableBucketOwnerControlACL"
     ] = True
-    transfer_obj = transfer.Transfer("s3-to-s3", s3_to_s3_copy_task_definition_copy)
+    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -575,9 +619,11 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, tmp_path):
     assert result.returncode == 0
 
 
-def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path):
+def test_s3_to_s3_copy_pca_delete(
+    setup_bucket, tmp_path, s3_to_s3_pca_delete_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
+        None, "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
     )
 
     # Create a file to watch for with the current date
@@ -617,9 +663,11 @@ def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path):
     assert result.returncode == 1
 
 
-def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path):
+def test_s3_to_s3_copy_pca_move(
+    setup_bucket, tmp_path, s3_to_s3_pca_move_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-to-s3-pca-move", s3_to_s3_pca_move_task_definition
+        None, "s3-to-s3-pca-move", s3_to_s3_pca_move_task_definition
     )
 
     # Write a test file locally
@@ -656,9 +704,11 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path):
     assert result.returncode == 1
 
 
-def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path):
+def test_s3_to_s3_copy_pca_rename(
+    setup_bucket, tmp_path, s3_to_s3_pca_rename_task_definition
+):
     transfer_obj = transfer.Transfer(
-        "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
+        None, "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
     )
 
     # Write a test file locally
@@ -696,8 +746,10 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path):
     assert result.returncode == 1
 
 
-def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
-    transfer_obj = transfer.Transfer("s3-to-ssh", s3_to_ssh_copy_task_definition)
+def test_s3_to_ssh_copy(
+    setup_bucket, tmp_path, setup_ssh_keys, s3_to_ssh_copy_task_definition
+):
+    transfer_obj = transfer.Transfer(None, "s3-to-ssh", s3_to_ssh_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -709,8 +761,10 @@ def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
     assert transfer_obj.run()
 
 
-def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
-    transfer_obj = transfer.Transfer("ssh-to-s3", ssh_to_s3_copy_task_definition)
+def test_ssh_to_s3_copy(
+    setup_bucket, root_dir, setup_ssh_keys, ssh_to_s3_copy_task_definition
+):
+    transfer_obj = transfer.Transfer(None, "ssh-to-s3", ssh_to_s3_copy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -736,9 +790,14 @@ def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     assert result.returncode == 0
 
 
-def test_s3_file_watch_custom_creds(setup_bucket, tmp_path, cleanup_credentials):
+def test_s3_file_watch_custom_creds(
+    setup_bucket,
+    tmp_path,
+    cleanup_credentials,
+    s3_file_watch_custom_creds_task_definition,
+):
     transfer_obj = transfer.Transfer(
-        "s3-file-watch-custom-creds", s3_file_watch_custom_creds_task_definition
+        None, "s3-file-watch-custom-creds", s3_file_watch_custom_creds_task_definition
     )
 
     # Create a file to watch for with the current date

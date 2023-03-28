@@ -110,7 +110,7 @@ def setup_bucket(credentials):
 
 def test_remote_handler():
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition
+        None, "call-lambda-function", lambda_execution_task_definition
     )
 
     execution_obj._set_remote_handlers()
@@ -157,7 +157,7 @@ def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
 
     # Call the execution and check whether the lambda function ran successfully
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition_copy
+        None, "call-lambda-function", lambda_execution_task_definition_copy
     )
 
     logging.getLogger("boto3").setLevel(logging.DEBUG)
@@ -184,7 +184,7 @@ def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
     lambda_execution_task_definition_copy["payload"]["bucket"] = BUCKET_NAME
     lambda_execution_task_definition_copy["invocationType"] = "RequestResponse"
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition_copy
+        None, "call-lambda-function", lambda_execution_task_definition_copy
     )
     assert execution_obj.run()
 
@@ -213,7 +213,7 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
 
     # Call the execution and check whether the lambda function ran successfully
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition_invalid_payload
+        None, "call-lambda-function", lambda_execution_task_definition_invalid_payload
     )
 
     assert not execution_obj.run()
@@ -221,7 +221,7 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     # Try the same, but using an async call to the function
     lambda_execution_task_definition_invalid_payload["invocationType"] = "Event"
     execution_obj = execution.Execution(
-        "call-lambda-function", lambda_execution_task_definition_invalid_payload
+        None, "call-lambda-function", lambda_execution_task_definition_invalid_payload
     )
 
     # This is expected to work, because there's no validation of the payload when invoked this way
@@ -249,5 +249,7 @@ def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
     # Enable logging
     del os.environ["OTF_NO_LOG"]
 
-    batch_obj = batch.Batch("timeout", lambda_batch_task_definition, config_loader)
+    batch_obj = batch.Batch(
+        None, "timeout", lambda_batch_task_definition, config_loader
+    )
     assert batch_obj.run()

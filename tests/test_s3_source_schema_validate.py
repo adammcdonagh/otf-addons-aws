@@ -1,24 +1,34 @@
+import pytest
 from opentaskpy.config.schemas import validate_transfer_json
 
-valid_protocol_definition = {
-    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-}
 
-valid_transfer = {
-    "bucket": "test-bucket",
-    "path": "/src",
-    "fileRegex": ".*\\.txt",
-    "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
-}
-
-valid_destination = {
-    "bucket": "test-bucket",
-    "path": "/dest",
-    "protocol": {"name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer"},
-}
+@pytest.fixture(scope="function")
+def valid_protocol_definition():
+    return {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+    }
 
 
-def test_s3_source_basic():
+@pytest.fixture(scope="function")
+def valid_transfer(valid_protocol_definition):
+    return {
+        "bucket": "test-bucket",
+        "path": "/src",
+        "fileRegex": ".*\\.txt",
+        "protocol": valid_protocol_definition,
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_destination(valid_protocol_definition):
+    return {
+        "bucket": "test-bucket",
+        "path": "/dest",
+        "protocol": valid_protocol_definition,
+    }
+
+
+def test_s3_source_basic(valid_transfer):
     json_data = {
         "type": "transfer",
         "source": valid_transfer,
@@ -31,7 +41,7 @@ def test_s3_source_basic():
     assert not validate_transfer_json(json_data)
 
 
-def test_s3_source_file_watch():
+def test_s3_source_file_watch(valid_transfer):
     json_data = {
         "type": "transfer",
         "source": valid_transfer,
@@ -62,7 +72,7 @@ def test_s3_source_file_watch():
     assert validate_transfer_json(json_data)
 
 
-def test_s3_destination():
+def test_s3_destination(valid_transfer, valid_destination):
     json_data = {
         "type": "transfer",
         "source": valid_transfer,
