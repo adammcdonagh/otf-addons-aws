@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "bucket": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "flags": {
+      "$ref": "s3_destination/flags.json"
+    },
+    "protocol": {
+      "$ref": "s3_destination/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "bucket",
+    "path",
+    "protocol"
+  ]
+}
