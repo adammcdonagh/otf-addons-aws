@@ -2,6 +2,7 @@ import os
 
 import boto3
 import pytest
+from localstack.utils.bootstrap import LocalstackContainerServer
 
 
 def get_root_dir():
@@ -25,11 +26,14 @@ def docker_compose_files(root_dir):
 
 
 @pytest.fixture(scope="session")
-def localstack(docker_services):
-    docker_services.start("localstack")
-    public_port = docker_services.wait_for_service("localstack", 4566)
-    url = f"http://{docker_services.docker_ip}:{public_port}"
-    return url
+def localstack():
+    server = LocalstackContainerServer()
+    assert not server.is_up()
+
+    server.start()
+    assert server.wait_is_up(60)
+
+    return "http://localhost:4566"
 
 
 @pytest.fixture(scope="session")
