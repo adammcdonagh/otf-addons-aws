@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "bucket": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "fileRegex": {
+      "type": "string"
+    },
+    "fileWatch": {
+      "$ref": "s3_source/fileWatch.json"
+    },
+    "error": {
+      "type": "boolean"
+    },
+    "postCopyAction": {
+      "$ref": "s3_source/postCopyAction.json"
+    },
+    "protocol": {
+      "$ref": "s3_source/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "bucket",
+    "path",
+    "fileRegex",
+    "protocol"
+  ]
+}

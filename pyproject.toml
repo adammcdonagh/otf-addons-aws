@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otf-addons-aws"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
@@ -17,7 +17,7 @@ classifiers = [
 keywords = ["automation", "task", "framework", "aws", "s3", "ssm", "otf"]
 dependencies = [
   "boto3 >= 1.26",
-  "opentaskpy >= 0.4.2",
+  "opentaskpy >= 0.6.3",
 ]
 description = "Addons for opentaskpy, giving it the ability to push/pull via AWS S3, and pull variables from AWS SSM Parameter Store."
 readme = "README.md"
@@ -37,6 +37,7 @@ dev = [
   "bumpver",
   "awscli",
   "awscli-local",
+  "localstack",
   "localstack-client",
   "pytest-shell",
   "lovely-pytest-docker",
@@ -45,12 +46,13 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/adammcdonagh/otf-addons-aws"
 "Bug Tracker" = "https://github.com/adammcdonagh/otf-addons-aws/issues"
+"Changelog" = "https://github.com/adammcdonagh/otf-addons-aws/blob/main/CHANGELOG.md"
 
 [tool.isort]
 profile = 'black'
 
 [tool.bumpver]
-current_version = "0.3.0"
+current_version = "0.4.0"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -62,3 +64,10 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
+
+# Include the schema JSON files in the package
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]

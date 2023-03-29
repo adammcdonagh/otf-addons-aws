@@ -12,17 +12,20 @@ BUCKET_NAME = "otf-addons-aws-s3-execution-test"
 
 root_dir_ = get_root_dir()
 
-s3_execution_task_definition = {
-    "type": "execution",
-    "bucket": BUCKET_NAME,
-    "key": "test_flag.txt",
-    "protocol": {
-        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Execution",
-    },
-}
+
+@pytest.fixture(scope="function")
+def s3_execution_task_definition():
+    return {
+        "type": "execution",
+        "bucket": BUCKET_NAME,
+        "key": "test_flag.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Execution",
+        },
+    }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
@@ -34,8 +37,13 @@ def setup_bucket(credentials):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
 
 
-def test_remote_handler():
-    execution_obj = execution.Execution("s3-flag-file", s3_execution_task_definition)
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
+def test_remote_handler(s3_execution_task_definition):
+    execution_obj = execution.Execution(
+        None, "s3-flag-file", s3_execution_task_definition
+    )
 
     execution_obj._set_remote_handlers()
 
@@ -43,8 +51,13 @@ def test_remote_handler():
     assert execution_obj.remote_handlers[0].__class__.__name__ == "S3Execution"
 
 
-def test_s3_touch_file(setup_bucket):
-    execution_obj = execution.Execution("s3-flag-file", s3_execution_task_definition)
+@pytest.mark.skipif(
+    condition=github_actions(), reason="cannot run localstack tests in github actions"
+)
+def test_s3_touch_file(setup_bucket, s3_execution_task_definition):
+    execution_obj = execution.Execution(
+        None, "s3-flag-file", s3_execution_task_definition
+    )
 
     assert execution_obj.run()
 

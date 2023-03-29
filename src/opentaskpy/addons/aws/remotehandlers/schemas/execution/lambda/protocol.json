@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"
+      ]
+    },
+    "access_key_id": {
+      "type": "string"
+    },
+    "secret_access_key": {
+      "type": "string"
+    },
+    "region_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false
+}

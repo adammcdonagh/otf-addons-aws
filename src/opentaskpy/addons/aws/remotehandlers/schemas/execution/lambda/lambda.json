@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string"
+    },
+    "functionArn": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "invocationType": {
+      "type": "string",
+      "enum": [
+        "Event",
+        "RequestResponse"
+      ]
+    },
+    "protocol": {
+      "$ref": "protocol.json"
+    }
+  },
+  "required": [
+    "type",
+    "functionArn",
+    "protocol"
+  ],
+  "additionalProperties": false
+}
