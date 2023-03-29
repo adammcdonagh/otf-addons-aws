@@ -1,5 +1,5 @@
 
-![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/unittest.yml/badge.svg?event=push) ![linting status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/linting.yml/badge.svg?event=push)
+![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/main.yml/badge.svg)
 
 This repository contains addons to allow integration with AWS components via [Open Task Framework (OTF)](https://github.com/adammcdonagh/open-task-framework)
 
