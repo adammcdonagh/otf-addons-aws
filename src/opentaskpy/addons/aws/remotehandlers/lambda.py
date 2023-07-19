@@ -1,31 +1,45 @@
+"""AWS Lambda remote handler."""
 import base64
 import json
 import os
 
 import boto3
 import botocore.exceptions
-import opentaskpy.logging
+import opentaskpy.otflogging
+from opentaskpy.exceptions import InvalidConfigError
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
 from .aws import set_aws_creds
 
 
 class LambdaExecution(RemoteExecutionHandler):
+    """AWS Lambda remote handler."""
+
     TASK_TYPE = "E"
 
-    def tidy(self):
+    def tidy(self) -> None:
+        """Tidy up the lambda client."""
         self.lambda_client.close()
 
-    def __init__(self, spec):
+    def __init__(self, remote_host: None, spec: dict):
+        """Initialise the LambdaExecution handler.
+
+        Args:
+            remote_host (None): Not used by this handler.
+            spec (dict): The spec for the execution.
+        """
         self.spec = spec
 
         # Ensure that function_arn is defined in the spec
+        # This is really handled by the schema checks
         if "functionArn" not in self.spec:
-            raise Exception("functionArn not defined in spec")
+            raise InvalidConfigError("functionArn not defined in spec")
 
-        self.logger = opentaskpy.logging.init_logging(
+        self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
+
+        super().__init__(spec)
 
         set_aws_creds(self)
 
@@ -46,19 +60,28 @@ class LambdaExecution(RemoteExecutionHandler):
 
         self.lambda_client = boto3.client("lambda", **kwargs)
 
-    def kill(self):
+    def kill(self) -> None:
+        """Kill the lambda function.
+
+        This doesn't do a huge amount. Lambda functions don't run for a long period of
+        time anyway, so this is more a way to clean up the client nicely.
+        """
         # We need to kill the running execute function
         self.tidy()
-        self.logger.info("Killing thread")
+        self.logger.info("Closed Lambda client")
 
-    # Triggers the lambda function. The synchronous invocation type will cause this thread
-    # to block. This can be an issue with batch jobs and their timeout.
-    # Boto3 will timeout after 60 seconds regardless, so Lambda functions that are called should not be long running. Their own timeout should be less than the
-    # batch timeout if one is used.
+    def execute(self) -> bool:
+        """Execute the lambda function.
 
-    # An async call will not check the status of the lambda function, only if there are errors with invoking it.
+        Triggers the lambda function. The synchronous invocation type will cause this
+        thread to block. This can be an issue with batch jobs and their timeout. Boto3
+        will timeout after 60 seconds regardless, so Lambda functions that are called
+        should not be long running. Their own timeout should be less than the batch timeout
+        if one is used.
 
-    def execute(self):
+        An async call will not check the status of the lambda function, only if there
+        are errors with invoking it.
+        """
         result = True
 
         function_arn = self.spec["functionArn"]
@@ -85,14 +108,15 @@ class LambdaExecution(RemoteExecutionHandler):
 
             if "FunctionError" in invoke_response:
                 self.logger.error(
-                    f"Lambda function returned an error: {function_arn} - AWS Exception message: {invoke_response['FunctionError']}"
+                    f"Lambda function returned an error: {function_arn} - AWS Exception"
+                    f" message: {invoke_response['FunctionError']}"
                 )
                 return False
 
             # Log the response if there is one
             if "LogResult" in invoke_response:
                 # base64 decode the result
-                log_result = base64.b64decode(invoke_response["LogResult"])
+                log_result = base64.b64decode(invoke_response["LogResult"]).decode()
 
                 self.logger.debug(f"Lambda function response: {log_result}")
 

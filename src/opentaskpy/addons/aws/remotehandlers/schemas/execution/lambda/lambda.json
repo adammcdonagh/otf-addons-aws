@@ -1,4 +1,6 @@
 {
+  "$id": "http://localhost/transfer/lambda/lambda.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "type": {
@@ -12,19 +14,12 @@
     },
     "invocationType": {
       "type": "string",
-      "enum": [
-        "Event",
-        "RequestResponse"
-      ]
+      "enum": ["Event", "RequestResponse"]
     },
     "protocol": {
       "$ref": "protocol.json"
     }
   },
-  "required": [
-    "type",
-    "functionArn",
-    "protocol"
-  ],
+  "required": ["type", "functionArn", "protocol"],
   "additionalProperties": false
 }

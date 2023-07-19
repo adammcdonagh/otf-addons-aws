@@ -1,3 +1,4 @@
+# pylint: skip-file
 import os
 
 import boto3
@@ -5,13 +6,13 @@ import pytest
 from localstack.utils.bootstrap import LocalstackContainerServer
 
 
-def github_actions():
+def github_actions() -> bool:
     if os.getenv("GITHUB_ACTIONS"):
         return True
     return False
 
 
-def get_root_dir():
+def get_root_dir() -> str:
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "test",
@@ -19,12 +20,12 @@ def get_root_dir():
 
 
 @pytest.fixture(scope="session")
-def root_dir():
+def root_dir() -> str:
     return get_root_dir()
 
 
 @pytest.fixture(scope="session")
-def docker_compose_files(root_dir):
+def docker_compose_files(root_dir) -> list[str]:
     """Get the docker-compose.yml absolute path."""
     return [
         f"{root_dir}/docker-compose.yml",
@@ -32,7 +33,8 @@ def docker_compose_files(root_dir):
 
 
 @pytest.fixture(scope="session")
-def localstack():
+def localstack() -> str:
+    os.environ["IMAGE_NAME"] = "localstack/localstack:2.1.0"
     server = LocalstackContainerServer()
     if not server.is_up():
         server.start()

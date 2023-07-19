@@ -1,4 +1,6 @@
 {
+  "$id": "http://localhost/transfer/s3_destination.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "bucket": {
@@ -15,9 +17,5 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "bucket",
-    "path",
-    "protocol"
-  ]
+  "required": ["bucket", "path", "protocol"]
 }

@@ -1,13 +1,14 @@
+# pylint: skip-file
 import json
 import logging
 
 import pytest
 from botocore.exceptions import ClientError
-from fixtures.localstack import *  # noqa:F401
 from opentaskpy.config.loader import ConfigLoader
 from pytest_shell import fs
 
 from opentaskpy.plugins.lookup.aws.ssm import run
+from tests.fixtures.localstack import *  # noqa: F403
 
 PLUGIN_NAME = "ssm"
 

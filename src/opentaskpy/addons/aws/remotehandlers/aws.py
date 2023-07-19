@@ -1,7 +1,16 @@
+"""AWS helper functions."""
 import os
 
+from .s3 import S3Execution, S3Transfer
 
-def set_aws_creds(obj):
+
+def set_aws_creds(obj: S3Transfer | S3Execution) -> None:
+    """Set AWS credentials for boto3.
+
+    Args:
+        obj: The object to set the credentials on
+
+    """
     obj.aws_access_key_id = (
         obj.spec["protocol"]["access_key_id"]
         if "access_key_id" in obj.spec["protocol"]

@@ -1,3 +1,4 @@
+# pylint: skip-file
 import io
 import json
 import logging
@@ -6,14 +7,16 @@ import re
 import subprocess
 import time
 import zipfile
+from contextlib import suppress
 
 import botocore.exceptions
-import opentaskpy.logging
+import opentaskpy.otflogging
 import pytest
-from fixtures.localstack import *  # noqa:F401
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.taskhandlers import batch, execution
 from pytest_shell import fs
+
+from tests.fixtures.localstack import *  # noqa: F403, F405
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -21,7 +24,7 @@ os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 BUCKET_NAME = "otf-addons-aws-lambda-execution-test"
 BUCKET_NAME_1 = "otf-addons-aws-lambda-execution-test-1"
 BUCKET_NAME_2 = "otf-addons-aws-lambda-execution-test-2"
-logger = opentaskpy.logging.init_logging(__name__)
+logger = opentaskpy.otflogging.init_logging(__name__)
 
 logger.setLevel(logging.DEBUG)
 
@@ -64,10 +67,8 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
     zip_buffer.seek(0)
 
     # Delete existing function
-    try:
+    with suppress(Exception):
         lambda_client.delete_function(FunctionName="my-function")
-    except Exception:
-        pass
 
     # Create a lambda function that creates a file on our test S3 bucket
     lambda_response = lambda_client.create_function(
@@ -104,8 +105,10 @@ def setup_bucket(credentials):
     buckets = [BUCKET_NAME, BUCKET_NAME_1, BUCKET_NAME_2]
     # Delete existing buckets and recreate
     for bucket in buckets:
-        subprocess.run(["awslocal", "s3", "rb", f"s3://{bucket}", "--force"])
-        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
+        subprocess.run(
+            ["awslocal", "s3", "rb", f"s3://{bucket}", "--force"], check=False
+        )
+        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"], check=False)
 
 
 @pytest.mark.skipif(
@@ -216,9 +219,9 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     lambda_execution_task_definition_invalid_payload["functionArn"] = function_arn
     # Remove the payload from the definition
     lambda_execution_task_definition_invalid_payload.pop("payload")
-    lambda_execution_task_definition_invalid_payload[
-        "invocationType"
-    ] = "RequestResponse"
+    lambda_execution_task_definition_invalid_payload["invocationType"] = (
+        "RequestResponse"
+    )
 
     # Call the execution and check whether the lambda function ran successfully
     execution_obj = execution.Execution(

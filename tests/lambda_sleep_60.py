@@ -1,7 +1,6 @@
 #!/bin/env python3
+import time
 
 
 def lambda_handler(event, context):
-    import time
-
     time.sleep(60)
