@@ -30,6 +30,7 @@ dev = [
   "localstack",
   "localstack-client",
   "pytest-shell",
+  "types-requests",
   "black >= 23.1.0",
   "isort",
   "pytest",

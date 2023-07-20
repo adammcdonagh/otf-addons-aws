@@ -1,8 +1,12 @@
 # pylint: skip-file
 import os
+from sys import version
 
 import boto3
+import docker
 import pytest
+import pytest_localstack
+import requests
 from localstack.utils.bootstrap import LocalstackContainerServer
 
 
@@ -32,13 +36,37 @@ def docker_compose_files(root_dir) -> list[str]:
     ]
 
 
+# @pytest.fixture(scope="session")
+# @pytest.mark.skipif(
+#     condition=in_docker(), reason="cannot run bootstrap tests in docker"
+# )
+
+# localstack_ = pytest_localstack.session_fixture(
+#     localstack_version="2.1.0",
+#     services=["s3", "lambda"],  # Limit to the AWS services you need.
+#     scope="session",  # Use the same Localstack container for all tests in this module.
+#     autouse=True,  # Automatically use this fixture in tests.
+#     region_name="eu-west-1",  # Use a specific AWS region.
+# )
+
+
+# @pytest.fixture(scope="session")
+# def localstack() -> str:
+#     return "http://localhost:4566"
+
+
 @pytest.fixture(scope="session")
 def localstack() -> str:
     os.environ["IMAGE_NAME"] = "localstack/localstack:2.1.0"
     server = LocalstackContainerServer()
+    server.container.ports.add(4566)
+
     if not server.is_up():
         server.start()
-        assert server.wait_is_up(60)
+        assert server.wait_is_up(30)
+
+        response = requests.get("http://localhost:4566/_localstack/health")
+        assert response.ok, "expected health check to return OK: %s" % response.text
 
     return "http://localhost:4566"
 

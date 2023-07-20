@@ -1,10 +1,8 @@
 """AWS helper functions."""
 import os
 
-from .s3 import S3Execution, S3Transfer
 
-
-def set_aws_creds(obj: S3Transfer | S3Execution) -> None:
+def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
     """Set AWS credentials for boto3.
 
     Args:

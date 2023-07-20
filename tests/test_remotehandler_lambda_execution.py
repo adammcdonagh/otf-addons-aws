@@ -128,7 +128,7 @@ def test_remote_handler(credentials):
 @pytest.mark.skipif(
     condition=github_actions(), reason="cannot run localstack tests in github actions"
 )
-def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
+def test_run_lambda_function(credentials, lambda_client, s3_client):
     function_arn = create_lambda_function(
         lambda_client,
         "lambda_write_to_s3.py",

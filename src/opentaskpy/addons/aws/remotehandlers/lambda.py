@@ -2,6 +2,7 @@
 import base64
 import json
 import os
+from ast import Str
 
 import boto3
 import botocore.exceptions
@@ -21,25 +22,23 @@ class LambdaExecution(RemoteExecutionHandler):
         """Tidy up the lambda client."""
         self.lambda_client.close()
 
-    def __init__(self, remote_host: None, spec: dict):
+    def __init__(self, spec: dict):
         """Initialise the LambdaExecution handler.
 
         Args:
-            remote_host (None): Not used by this handler.
             spec (dict): The spec for the execution.
         """
-        self.spec = spec
-
         # Ensure that function_arn is defined in the spec
         # This is really handled by the schema checks
-        if "functionArn" not in self.spec:
-            raise InvalidConfigError("functionArn not defined in spec")
 
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
         super().__init__(spec)
+
+        if "functionArn" not in self.spec:
+            raise InvalidConfigError("functionArn not defined in spec")
 
         set_aws_creds(self)
 

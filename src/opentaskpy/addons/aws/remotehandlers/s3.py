@@ -27,8 +27,6 @@ class S3Transfer(RemoteTransferHandler):
             spec (dict): The spec for the transfer. This is either the source, or the
             destination spec.
         """
-        self.spec = spec
-
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
@@ -325,15 +323,12 @@ class S3Execution(RemoteExecutionHandler):
         """Tidy up the S3 client."""
         self.s3_client.close()
 
-    def __init__(self, remote_host: None, spec: dict):
+    def __init__(self, spec: dict):
         """Initialise the S3Execution handler.
 
         Args:
-            remote_host (None): Not used by this handler.
             spec (dict): The spec for the execution.
         """
-        self.spec = spec
-
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
