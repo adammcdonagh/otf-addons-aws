@@ -16,7 +16,8 @@ def github_actions() -> bool:
     return False
 
 
-def get_root_dir() -> str:
+@pytest.fixture(scope="session")
+def root_dir() -> str:
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "test",
@@ -24,15 +25,19 @@ def get_root_dir() -> str:
 
 
 @pytest.fixture(scope="session")
-def root_dir() -> str:
-    return get_root_dir()
+def root_dir_tests() -> str:
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "tests",
+    )
 
 
 @pytest.fixture(scope="session")
-def docker_compose_files(root_dir) -> list[str]:
+def docker_compose_files(root_dir, root_dir_tests) -> list[str]:
     """Get the docker-compose.yml absolute path."""
     return [
         f"{root_dir}/docker-compose.yml",
+        f"{root_dir_tests}/docker-compose.yml",
     ]
 
 
@@ -56,19 +61,24 @@ def docker_compose_files(root_dir) -> list[str]:
 
 
 @pytest.fixture(scope="session")
-def localstack() -> str:
-    os.environ["IMAGE_NAME"] = "localstack/localstack:2.1.0"
-    server = LocalstackContainerServer()
-    server.container.ports.add(4566)
+def localstack(docker_services) -> str:
+    # os.environ["IMAGE_NAME"] = "localstack/localstack:2.1.0"
+    # server = LocalstackContainerServer()
+    # server.container.ports.add(4566)
 
-    if not server.is_up():
-        server.start()
-        assert server.wait_is_up(30)
+    # if not server.is_up():
+    #     server.start()
+    #     assert server.wait_is_up(30)
 
-        response = requests.get("http://localhost:4566/_localstack/health")
-        assert response.ok, "expected health check to return OK: %s" % response.text
+    #     response = requests.get("http://localhost:4566/_localstack/health")
+    #     assert response.ok, "expected health check to return OK: %s" % response.text
 
-    return "http://localhost:4566"
+    # return "http://localhost:4566"
+
+    docker_services.start("localstack")
+    port = docker_services.port_for("localstack", 4566)
+    address = f"http://{docker_services.docker_ip}:{port}"
+    return address
 
 
 @pytest.fixture(scope="session")

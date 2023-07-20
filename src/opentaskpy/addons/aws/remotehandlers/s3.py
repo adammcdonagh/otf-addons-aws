@@ -76,11 +76,10 @@ class S3Transfer(RemoteTransferHandler):
             or self.spec["postCopyAction"]["action"] == "rename"
         ):
             for file in files:
-                # If this is a rename, then we need to determine the new key
-                new_file = file
+                new_file = (
+                    f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
+                )
                 if self.spec["postCopyAction"]["action"] == "rename":
-                    new_file = f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
-
                     # Use the pattern and sub values to rename the file correctly
                     new_file = re.sub(
                         self.spec["postCopyAction"]["pattern"],
@@ -94,7 +93,7 @@ class S3Transfer(RemoteTransferHandler):
                         "Bucket": self.spec["bucket"],
                         "Key": file,
                     },
-                    Key=f"{self.spec['postCopyAction']['destination']}/{new_file}",
+                    Key=new_file,
                 )
                 self.s3_client.delete_objects(
                     Bucket=self.spec["bucket"],
@@ -156,6 +155,7 @@ class S3Transfer(RemoteTransferHandler):
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
                 except KeyError:
                     break
+            break
 
         return remote_files
 

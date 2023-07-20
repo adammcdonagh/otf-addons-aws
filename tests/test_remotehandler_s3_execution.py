@@ -12,8 +12,11 @@ os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
 BUCKET_NAME = "otf-addons-aws-s3-execution-test"
 
-root_dir_ = get_root_dir()
 
+root_dir_ = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "test",
+)
 
 s3_execution_task_definition = {
     "type": "execution",

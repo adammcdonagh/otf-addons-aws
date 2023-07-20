@@ -28,7 +28,10 @@ logger = opentaskpy.otflogging.init_logging(__name__)
 
 logger.setLevel(logging.DEBUG)
 
-root_dir_ = get_root_dir()
+root_dir_ = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "test",
+)
 
 lambda_execution_task_definition = {
     "type": "execution",
@@ -84,6 +87,20 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
     )
     function_arn = lambda_response["FunctionArn"]
 
+    # Wait for the function status to become Active, from Pending before proceeding
+    counter = 0
+    while True:
+        lambda_response = lambda_client.get_function(FunctionName=function_arn)
+        if lambda_response["Configuration"]["State"] == "Active":
+            break
+        counter += 1
+        # If we get to 10, then fail the text
+        if counter >= 10:
+            raise Exception(
+                "Lambda function failed to become active in reasonable time"
+            )
+        time.sleep(1)
+
     # Manually call the function to check it's actually working
     if invoke:
         lambda_client.invoke(
@@ -128,7 +145,7 @@ def test_remote_handler(credentials):
 @pytest.mark.skipif(
     condition=github_actions(), reason="cannot run localstack tests in github actions"
 )
-def test_run_lambda_function(credentials, lambda_client, s3_client):
+def test_run_lambda_function(credentials, lambda_client, s3_client, setup_bucket):
     function_arn = create_lambda_function(
         lambda_client,
         "lambda_write_to_s3.py",
