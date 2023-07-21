@@ -1,4 +1,3 @@
-
 ![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/main.yml/badge.svg)
 
 This repository contains addons to allow integration with AWS components via [Open Task Framework (OTF)](https://github.com/adammcdonagh/open-task-framework)
@@ -6,15 +5,17 @@ This repository contains addons to allow integration with AWS components via [Op
 Open Task Framework (OTF) is a Python based framework to make it easy to run predefined file transfers and scripts/commands on remote machines.
 
 These addons include several additional features:
-  * A new plugin for SSM Param Store to pull dynamic variables
-  * A new remotehandler to push/pull files via AWS S3
-  * A new remote handler to trigger AWS Lambda functions
+
+- A new plugin for SSM Param Store to pull dynamic variables
+- A new remotehandler to push/pull files via AWS S3
+- A new remote handler to trigger AWS Lambda functions
 
 # AWS Credentials
 
-This package uses boto3 to communicate with AWS. 
+This package uses boto3 to communicate with AWS.
 
 Credentials can be set via config using equivalently named variables alongside the protocol definition e.g;
+
 ```json
 "protocol": {
     "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
@@ -33,14 +34,16 @@ Transfers are defined the same as a normal SSH based transfer.
 As part of the upload, the `bucket-owner-full-control` ACL flag is applied to all files. This can be disabled by setting `disableBucketOwnerControlACL` to `true` in the `protocol` definition
 
 ### Supported features
-   * Plain file watch
-   * File watch/transfer with file size and age constraints
-   * `move` & `delete` post copy actions
-   * Touching empty files after transfer. e.g. `.fin` files used as completion flags
-   * Touching empty files as an execution
+
+- Plain file watch
+- File watch/transfer with file size and age constraints
+- `move` & `delete` post copy actions
+- Touching empty files after transfer. e.g. `.fin` files used as completion flags
+- Touching empty files as an execution
 
 ### Limitations
-   * No support for log watch
+
+- No support for log watch
 
 # Configuration
 
@@ -76,6 +79,7 @@ JSON configs for transfers can be defined as follows:
 ```
 
 ## Example S3 Upload
+
 ```json
 "destination": [
     {
@@ -89,6 +93,7 @@ JSON configs for transfers can be defined as follows:
 ```
 
 ## Example S3 upload with flag files
+
 ```json
 "destination": [
     {
@@ -110,14 +115,14 @@ The Lambda remote handler allows AWS Lambda functions to be called. When provide
 
 ## Asynchronous vs Synchronous Execution
 
-Lambda functions can be called with either an `invocationType` of `Event` (default if not specified) or `RequestResponse`. 
+Lambda functions can be called with either an `invocationType` of `Event` (default if not specified) or `RequestResponse`.
 
 `Event` is asynchronous, and tells the Lambda function to trigger, but does not check that it ran successfully. This means it's up to you to make sure that you have appropriate monitoring of your Lambda functions.
 
 `RequestResponse` will block until the Lambda function either completes, or times out. Boto3 has a timeout of 60 seconds, so this cannot be used for long running functions (over 1 minute). This also causes issues when used in conjunction with batches and timeouts. Since the request blocks, the thread cannot be killed by the batch thread, meaning that it will block any further execution until 60 seconds after triggering the lambda function.
 
-
 ## Example S3 Execution touch flag file
+
 ```json
 {
   "type": "execution",
@@ -130,6 +135,7 @@ Lambda functions can be called with either an `invocationType` of `Event` (defau
 ```
 
 ## Example Lambda function call
+
 ```json
 {
   "type": "execution",

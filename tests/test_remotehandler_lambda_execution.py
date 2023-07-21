@@ -269,7 +269,7 @@ def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
     # set the arn in lambda_execution_task_definition
     lambda_execution_task_definition["functionArn"] = function_arn
 
-    # We need to write the lambda execution defintion to a file for the config_loader to read from
+    # We need to write the lambda execution definition to a file for the config_loader to read from
     with open(f"{tmpdir}/lambda_execution_task_definition.json", "w") as f:
         json.dump(lambda_execution_task_definition, f)
 

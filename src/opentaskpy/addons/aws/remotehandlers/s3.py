@@ -10,7 +10,7 @@ from opentaskpy.remotehandlers.remotehandler import (
     RemoteTransferHandler,
 )
 
-from .aws import set_aws_creds
+from .creds import set_aws_creds
 
 MAX_OBJECTS_PER_QUERY = 100
 
@@ -149,7 +149,7 @@ class S3Transfer(RemoteTransferHandler):
                     }
 
                 # This handles the pagination
-                # if the NextContinuationToken doesnt exist, then we'll break out
+                # if the NextContinuationToken doesn't exist, then we'll break out
                 # of the loop
                 try:
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
@@ -230,7 +230,7 @@ class S3Transfer(RemoteTransferHandler):
                     file,
                     f"{local_staging_directory}/{file_name}",
                 )
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to transfer file: {file}")
                 self.logger.error(e)
                 result = 1
@@ -349,7 +349,7 @@ class S3Execution(RemoteExecutionHandler):
 
         self.s3_client = boto3.client("s3", **kwargs)
 
-    # This cannot be long running, so kill doesnt really need to do anything
+    # This cannot be long running, so kill doesn't really need to do anything
     def kill(self) -> None:
         """Kill the remote process."""
 

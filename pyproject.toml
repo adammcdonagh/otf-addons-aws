@@ -38,7 +38,7 @@ dev = [
   "pytest-shell",
   "lovely-pytest-docker",
   "pre-commit",
-  "pylint",
+  "pylint >= 2.17.0",
   "pydantic",
   "mypy",
   "ruff",
@@ -396,7 +396,7 @@ convention = "google"
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["D104"]
-"tests/*.py" = ["D103", "D100"]
+"tests/*.py" = ["D103", "D100", "F405"]
 
 
 [tool.ruff.mccabe]

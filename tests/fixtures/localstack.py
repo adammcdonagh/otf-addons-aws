@@ -1,13 +1,8 @@
 # pylint: skip-file
 import os
-from sys import version
 
 import boto3
-import docker
 import pytest
-import pytest_localstack
-import requests
-from localstack.utils.bootstrap import LocalstackContainerServer
 
 
 def github_actions() -> bool:

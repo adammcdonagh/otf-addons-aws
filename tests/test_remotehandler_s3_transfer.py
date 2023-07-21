@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import threading
 
-import botocore
 import pytest
 from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
@@ -326,7 +325,7 @@ def ssh_2(docker_services):
 @pytest.fixture(scope="session")
 def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
     # Run command locally
-    # if ssh key dosent exist yet
+    # if ssh key doesn't exist yet
     ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
     if not os.path.isfile(ssh_private_key_file):
         subprocess.run(
@@ -559,7 +558,7 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
 
     assert transfer_obj.run()
 
-    # Cant really test this works with localstack, since there's no actual IAM permissions set on anything
+    # Can't really test this works with localstack, since there's no actual IAM permissions set on anything
     # Check that the file is in the destination bucket
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
@@ -612,12 +611,12 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     # Check that the file is in the destination bucket
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
-    assert objects["Contents"][0]["Key"] == f"dest/pca-move.txt"
+    assert objects["Contents"][0]["Key"] == "dest/pca-move.txt"
 
     # Check that the file has been moved to archive
     objects = s3_client.list_objects(Bucket=BUCKET_NAME)
     assert len(objects["Contents"]) == 1
-    assert objects["Contents"][0]["Key"] == f"src/archive/pca-move.txt"
+    assert objects["Contents"][0]["Key"] == "src/archive/pca-move.txt"
 
 
 @pytest.mark.skipif(
@@ -639,12 +638,12 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     # Check that the file is in the destination bucket
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
-    assert objects["Contents"][0]["Key"] == f"dest/file-pca-rename-1234.txt"
+    assert objects["Contents"][0]["Key"] == "dest/file-pca-rename-1234.txt"
 
     objects = s3_client.list_objects(Bucket=BUCKET_NAME)
     assert len(objects["Contents"]) == 1
     assert (
-        objects["Contents"][0]["Key"] == f"src/archive/file-pca-rename-1234-renamed.txt"
+        objects["Contents"][0]["Key"] == "src/archive/file-pca-rename-1234-renamed.txt"
     )
 
 

@@ -2,7 +2,6 @@
 import base64
 import json
 import os
-from ast import Str
 
 import boto3
 import botocore.exceptions
@@ -10,7 +9,7 @@ import opentaskpy.otflogging
 from opentaskpy.exceptions import InvalidConfigError
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
-from .aws import set_aws_creds
+from .creds import set_aws_creds
 
 
 class LambdaExecution(RemoteExecutionHandler):
