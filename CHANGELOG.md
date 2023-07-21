@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.1
+
+- Update JSON source schemas for S3 transfers.
+
 ## v0.5.0
 
 - Updated linting and workflows to match `opentaskpy` repo standards

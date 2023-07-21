@@ -2,9 +2,9 @@
   "type": "transfer",
   "source": {
     "bucket": "test-bucket",
+    "directory": "src",
     "fileWatch": {
       "timeout": 15,
-      "directory": "src",
       "fileRegex": ".*\\.txt"
     },
     "protocol": {

@@ -29,13 +29,13 @@ s3_file_watch_task_definition = {
     "type": "transfer",
     "source": {
         "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": ".*\\.txt",
         "protocol": {
             "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
         },
         "fileWatch": {
             "timeout": 10,
-            "directory": "src",
-            "fileRegex": ".*\\.txt",
         },
     },
 }
