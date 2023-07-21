@@ -1,4 +1,9 @@
-![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/main.yml/badge.svg)
+[![PyPi](https://img.shields.io/pypi/v/opentaskpy.svg)](https://pypi.org/project/opentaskpy/)
+![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/test.yml/badge.svg)
+[![Coverage](https://img.shields.io/codecov/c/github/adammcdonagh/otf-addons-aws.svg)](https://codecov.io/gh/adammcdonagh/otf-addons-aws)
+[![License](https://img.shields.io/github/license/adammcdonagh/otf-addons-aws.svg)](https://github.com/adammcdonagh/otf-addons-aws/blob/master/LICENSE)
+[![Issues](https://img.shields.io/github/issues/adammcdonagh/otf-addons-aws.svg)](https://github.com/adammcdonagh/otf-addons-aws/issues)
+[![Stars](https://img.shields.io/github/stars/adammcdonagh/otf-addons-aws.svg)](https://github.com/adammcdonagh/otf-addons-aws/stargazers)
 
 This repository contains addons to allow integration with AWS components via [Open Task Framework (OTF)](https://github.com/adammcdonagh/open-task-framework)
 
