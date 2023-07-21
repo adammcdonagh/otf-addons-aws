@@ -6,8 +6,9 @@
     "bucket": {
       "type": "string"
     },
-    "path": {
-      "type": "string"
+    "directory": {
+      "type": "string",
+      "default": ""
     },
     "flags": {
       "$ref": "s3_destination/flags.json"
@@ -17,5 +18,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["bucket", "path", "protocol"]
+  "required": ["bucket", "protocol"]
 }

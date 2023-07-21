@@ -6,8 +6,9 @@
     "bucket": {
       "type": "string"
     },
-    "path": {
-      "type": "string"
+    "directory": {
+      "type": "string",
+      "default": ""
     },
     "fileRegex": {
       "type": "string"
@@ -26,5 +27,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["bucket", "path", "fileRegex", "protocol"]
+  "required": ["bucket", "fileRegex", "protocol"]
 }
