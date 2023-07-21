@@ -14,7 +14,7 @@ def valid_protocol_definition():
 def valid_transfer(valid_protocol_definition):
     return {
         "bucket": "test-bucket",
-        "path": "/src",
+        "directory": "/src",
         "fileRegex": ".*\\.txt",
         "protocol": valid_protocol_definition,
     }
@@ -24,7 +24,7 @@ def valid_transfer(valid_protocol_definition):
 def valid_destination(valid_protocol_definition):
     return {
         "bucket": "test-bucket",
-        "path": "/dest",
+        "directory": "/dest",
         "protocol": valid_protocol_definition,
     }
 
