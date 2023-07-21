@@ -63,7 +63,7 @@ def localstack(docker_services) -> str:
         address = f"http://{docker_services.docker_ip}:{port}"
         return address
     else:
-        address = f"http://localhost:4566"
+        address = "http://localhost:4566"
         return address
 
 

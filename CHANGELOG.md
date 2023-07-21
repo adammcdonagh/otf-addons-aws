@@ -3,6 +3,8 @@
 ## v0.5.1
 
 - Update JSON source schemas for S3 transfers.
+- Add badges to `README.md`
+- Add code coverage checks to GitHub workflow
 
 ## v0.5.0
 

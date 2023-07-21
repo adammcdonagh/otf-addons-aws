@@ -1,4 +1,4 @@
-[![PyPi](https://img.shields.io/pypi/v/opentaskpy.svg)](https://pypi.org/project/opentaskpy/)
+[![PyPi](https://img.shields.io/pypi/v/otf-addons-aws.svg)](https://pypi.org/project/otf-addons-aws/)
 ![unittest status](https://github.com/adammcdonagh/otf-addons-aws/actions/workflows/test.yml/badge.svg)
 [![Coverage](https://img.shields.io/codecov/c/github/adammcdonagh/otf-addons-aws.svg)](https://codecov.io/gh/adammcdonagh/otf-addons-aws)
 [![License](https://img.shields.io/github/license/adammcdonagh/otf-addons-aws.svg)](https://github.com/adammcdonagh/otf-addons-aws/blob/master/LICENSE)
