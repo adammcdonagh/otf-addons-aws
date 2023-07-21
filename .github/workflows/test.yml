@@ -53,6 +53,7 @@ jobs:
           . venv/bin/activate
           python -m pip install -U pip setuptools wheel
           pip install -U ".[dev]"
+          docker pull localstack/localstack
       - name: Generate pre-commit restore key
         id: generate-pre-commit-key
         run: >-
@@ -312,11 +313,18 @@ jobs:
           fail-on-cache-miss: true
           key: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{
             needs.prepare-base.outputs.python-key }}
+      - name: Start LocalStack
+        run: |
+          localstack start -d                       # Start LocalStack in the background
+
+          echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
+          localstack wait -t 30                     # to become ready before timing out
+          echo "Startup complete"
       - name: Run tests
         run: |
           . venv/bin/activate
           pip install -U .
-          python -m pytest
+          python -m pytest --cov
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:

@@ -123,7 +123,7 @@ class S3Transfer(RemoteTransferHandler):
         }
         if directory:
             kwargs["Prefix"] = directory
-        elif str(self.spec["directory"]):
+        elif "directory" in self.spec and str(self.spec["directory"]):
             kwargs["Prefix"] = str(self.spec["directory"])
 
         remote_files = {}

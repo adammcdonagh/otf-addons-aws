@@ -366,9 +366,6 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
 
 
 @pytest.fixture(scope="function")
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
@@ -396,9 +393,6 @@ def test_remote_handler():
     assert transfer_obj.dest_remote_handlers is None
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_file_watch(setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer(
         None, "s3-file-watch", s3_file_watch_task_definition
