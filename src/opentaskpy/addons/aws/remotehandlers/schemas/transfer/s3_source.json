@@ -1,4 +1,6 @@
 {
+  "$id": "http://localhost/transfer/s3_source.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "bucket": {
@@ -24,10 +26,5 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "bucket",
-    "path",
-    "fileRegex",
-    "protocol"
-  ]
+  "required": ["bucket", "path", "fileRegex", "protocol"]
 }

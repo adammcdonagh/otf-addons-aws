@@ -1,11 +1,11 @@
 {
+  "$id": "http://localhost/transfer/lambda/protocol.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "enum": [
-        "opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"
-      ]
+      "enum": ["opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"]
     },
     "access_key_id": {
       "type": "string"
@@ -17,8 +17,6 @@
       "type": "string"
     }
   },
-  "required": [
-    "name"
-  ],
+  "required": ["name"],
   "additionalProperties": false
 }

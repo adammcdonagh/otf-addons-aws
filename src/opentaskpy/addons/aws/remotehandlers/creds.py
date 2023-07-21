@@ -1,7 +1,14 @@
+"""AWS helper functions."""
 import os
 
 
-def set_aws_creds(obj):
+def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
+    """Set AWS credentials for boto3.
+
+    Args:
+        obj: The object to set the credentials on
+
+    """
     obj.aws_access_key_id = (
         obj.spec["protocol"]["access_key_id"]
         if "access_key_id" in obj.spec["protocol"]

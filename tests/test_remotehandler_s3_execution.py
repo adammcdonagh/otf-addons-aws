@@ -1,28 +1,31 @@
+# pylint: skip-file
 import os
 import subprocess
 
 import pytest
-from fixtures.localstack import *  # noqa:F401
 from opentaskpy.taskhandlers import execution
+
+from tests.fixtures.localstack import *  # noqa: F403, F405
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
 BUCKET_NAME = "otf-addons-aws-s3-execution-test"
 
-root_dir_ = get_root_dir()
 
+root_dir_ = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "test",
+)
 
-@pytest.fixture(scope="function")
-def s3_execution_task_definition():
-    return {
-        "type": "execution",
-        "bucket": BUCKET_NAME,
-        "key": "test_flag.txt",
-        "protocol": {
-            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Execution",
-        },
-    }
+s3_execution_task_definition = {
+    "type": "execution",
+    "bucket": BUCKET_NAME,
+    "key": "test_flag.txt",
+    "protocol": {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Execution",
+    },
+}
 
 
 @pytest.fixture(scope="module")
@@ -33,14 +36,16 @@ def setup_bucket(credentials):
     buckets = [BUCKET_NAME]
     # Delete existing buckets and recreate
     for bucket in buckets:
-        subprocess.run(["awslocal", "s3", "rb", f"s3://{bucket}", "--force"])
-        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
+        subprocess.run(
+            ["awslocal", "s3", "rb", f"s3://{bucket}", "--force"], check=False
+        )
+        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"], check=False)
 
 
 @pytest.mark.skipif(
     condition=github_actions(), reason="cannot run localstack tests in github actions"
 )
-def test_remote_handler(s3_execution_task_definition):
+def test_remote_handler():
     execution_obj = execution.Execution(
         None, "s3-flag-file", s3_execution_task_definition
     )
@@ -54,7 +59,7 @@ def test_remote_handler(s3_execution_task_definition):
 @pytest.mark.skipif(
     condition=github_actions(), reason="cannot run localstack tests in github actions"
 )
-def test_s3_touch_file(setup_bucket, s3_execution_task_definition):
+def test_s3_touch_file(setup_bucket):
     execution_obj = execution.Execution(
         None, "s3-flag-file", s3_execution_task_definition
     )

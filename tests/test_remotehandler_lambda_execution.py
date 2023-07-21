@@ -1,3 +1,4 @@
+# pylint: skip-file
 import io
 import json
 import logging
@@ -6,14 +7,16 @@ import re
 import subprocess
 import time
 import zipfile
+from contextlib import suppress
 
 import botocore.exceptions
-import opentaskpy.logging
+import opentaskpy.otflogging
 import pytest
-from fixtures.localstack import *  # noqa:F401
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.taskhandlers import batch, execution
 from pytest_shell import fs
+
+from tests.fixtures.localstack import *  # noqa: F403, F405
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -21,11 +24,14 @@ os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 BUCKET_NAME = "otf-addons-aws-lambda-execution-test"
 BUCKET_NAME_1 = "otf-addons-aws-lambda-execution-test-1"
 BUCKET_NAME_2 = "otf-addons-aws-lambda-execution-test-2"
-logger = opentaskpy.logging.init_logging(__name__)
+logger = opentaskpy.otflogging.init_logging(__name__)
 
 logger.setLevel(logging.DEBUG)
 
-root_dir_ = get_root_dir()
+root_dir_ = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "test",
+)
 
 lambda_execution_task_definition = {
     "type": "execution",
@@ -64,10 +70,8 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
     zip_buffer.seek(0)
 
     # Delete existing function
-    try:
+    with suppress(Exception):
         lambda_client.delete_function(FunctionName="my-function")
-    except Exception:
-        pass
 
     # Create a lambda function that creates a file on our test S3 bucket
     lambda_response = lambda_client.create_function(
@@ -82,6 +86,20 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
         MemorySize=128,
     )
     function_arn = lambda_response["FunctionArn"]
+
+    # Wait for the function status to become Active, from Pending before proceeding
+    counter = 0
+    while True:
+        lambda_response = lambda_client.get_function(FunctionName=function_arn)
+        if lambda_response["Configuration"]["State"] == "Active":
+            break
+        counter += 1
+        # If we get to 10, then fail the text
+        if counter >= 10:
+            raise Exception(
+                "Lambda function failed to become active in reasonable time"
+            )
+        time.sleep(1)
 
     # Manually call the function to check it's actually working
     if invoke:
@@ -104,8 +122,10 @@ def setup_bucket(credentials):
     buckets = [BUCKET_NAME, BUCKET_NAME_1, BUCKET_NAME_2]
     # Delete existing buckets and recreate
     for bucket in buckets:
-        subprocess.run(["awslocal", "s3", "rb", f"s3://{bucket}", "--force"])
-        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"])
+        subprocess.run(
+            ["awslocal", "s3", "rb", f"s3://{bucket}", "--force"], check=False
+        )
+        subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"], check=False)
 
 
 @pytest.mark.skipif(
@@ -125,7 +145,7 @@ def test_remote_handler(credentials):
 @pytest.mark.skipif(
     condition=github_actions(), reason="cannot run localstack tests in github actions"
 )
-def test_run_lambda_function(setup_bucket, lambda_client, s3_client):
+def test_run_lambda_function(credentials, lambda_client, s3_client, setup_bucket):
     function_arn = create_lambda_function(
         lambda_client,
         "lambda_write_to_s3.py",
@@ -216,9 +236,9 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     lambda_execution_task_definition_invalid_payload["functionArn"] = function_arn
     # Remove the payload from the definition
     lambda_execution_task_definition_invalid_payload.pop("payload")
-    lambda_execution_task_definition_invalid_payload[
-        "invocationType"
-    ] = "RequestResponse"
+    lambda_execution_task_definition_invalid_payload["invocationType"] = (
+        "RequestResponse"
+    )
 
     # Call the execution and check whether the lambda function ran successfully
     execution_obj = execution.Execution(
@@ -249,7 +269,7 @@ def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
     # set the arn in lambda_execution_task_definition
     lambda_execution_task_definition["functionArn"] = function_arn
 
-    # We need to write the lambda execution defintion to a file for the config_loader to read from
+    # We need to write the lambda execution definition to a file for the config_loader to read from
     with open(f"{tmpdir}/lambda_execution_task_definition.json", "w") as f:
         json.dump(lambda_execution_task_definition, f)
 
