@@ -320,6 +320,8 @@ jobs:
           fail-on-cache-miss: true
           key: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{
             needs.prepare-base.outputs.python-key }}
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Start LocalStack
         run: |
           pip install localstack awscli-local
