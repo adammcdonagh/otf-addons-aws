@@ -27,9 +27,6 @@ def test_ssm_plugin_missing_name():
     )
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_ssm_plugin_param_name_not_found(credentials):
     with pytest.raises(ClientError) as ex:
         run(name="does_not_exist")
@@ -37,9 +34,6 @@ def test_ssm_plugin_param_name_not_found(credentials):
     assert ex.value.response["Error"]["Code"] == "ParameterNotFound"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_ssm_plugin_standard_string(ssm_client):
     expected = "test1234"
     # Populate the SSM parameter store with a test value
@@ -55,9 +49,6 @@ def test_ssm_plugin_standard_string(ssm_client):
     assert result == expected
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_ssm_plugin_secure_string(ssm_client):
     expected = "securetest1234"
     # Populate the SSM parameter store with a test value
@@ -73,9 +64,6 @@ def test_ssm_plugin_secure_string(ssm_client):
     assert result == expected
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_config_loader_using_ssm_plugin(ssm_client, tmpdir):
     json_obj = {
         "testLookup": "{{ lookup('aws.ssm', name='my_test_param') }}",

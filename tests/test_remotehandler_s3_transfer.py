@@ -424,9 +424,6 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     assert transfer_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_age_conditions_size(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-age-conditions", s3_age_conditions_task_definition
@@ -455,9 +452,6 @@ def test_s3_age_conditions_size(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "dest/correct_file.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-file-size-conditions", s3_file_size_conditions_task_definition
@@ -482,9 +476,6 @@ def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "dest/correct_file.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
 
@@ -506,9 +497,6 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-with-fin", s3_to_s3_copy_with_fin_task_definition
@@ -533,9 +521,6 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
     assert "dest/my_fin.fin" in object_keys
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_path):
     s3_to_s3_copy_task_definition["destination"][0]["protocol"][
         "disableBucketOwnerControlACL"
@@ -559,9 +544,6 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     assert objects["Contents"][0]["Key"] == "dest/test.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
@@ -587,9 +569,6 @@ def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     assert "Contents" not in objects
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-move", s3_to_s3_pca_move_task_definition
@@ -613,9 +592,6 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "src/archive/pca-move.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
@@ -654,9 +630,6 @@ def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
     assert transfer_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     transfer_obj = transfer.Transfer(None, "ssh-to-s3", ssh_to_s3_copy_task_definition)
 
@@ -684,9 +657,6 @@ def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     assert result.returncode == 0
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_file_watch_custom_creds(
     setup_bucket,
     tmp_path,

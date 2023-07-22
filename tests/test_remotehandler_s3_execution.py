@@ -42,9 +42,6 @@ def setup_bucket(credentials):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"], check=False)
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_remote_handler():
     execution_obj = execution.Execution(
         None, "s3-flag-file", s3_execution_task_definition
@@ -56,9 +53,6 @@ def test_remote_handler():
     assert execution_obj.remote_handlers[0].__class__.__name__ == "S3Execution"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_touch_file(setup_bucket):
     execution_obj = execution.Execution(
         None, "s3-flag-file", s3_execution_task_definition
