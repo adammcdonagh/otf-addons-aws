@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import threading
+from copy import deepcopy
 
 import pytest
 from opentaskpy.taskhandlers import transfer
@@ -366,10 +367,7 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
 
 
 @pytest.fixture(scope="function")
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
-def setup_bucket(credentials):
+def setup_bucket(credentials, s3_client):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed
 
@@ -396,10 +394,7 @@ def test_remote_handler():
     assert transfer_obj.dest_remote_handlers is None
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
-def test_s3_file_watch(setup_bucket, tmp_path):
+def test_s3_file_watch(s3_client, setup_bucket, tmp_path):
     transfer_obj = transfer.Transfer(
         None, "s3-file-watch", s3_file_watch_task_definition
     )
@@ -408,19 +403,29 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     datestamp = datetime.datetime.now().strftime("%Y%m%d")
 
     # Write a test file locally
-    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-
-    # Write the dummy file to the test S3 bucket
+    fs.create_files(
+        [
+            {f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}1.csv": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}2.pdf": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}3.docx": {"content": "test1234"}},
+        ]
+    )
 
     with pytest.raises(exceptions.RemoteFileNotFoundError) as cm:
         transfer_obj.run()
     assert "No files found after " in cm.value.args[0]
 
+    # Upload the 3 non-matching files
+    for file in os.listdir(tmp_path):
+        if not file.endswith(".txt"):
+            create_s3_file(s3_client, f"{tmp_path}/{file}", f"src/{file}")
+
     # This time write the contents after 5 seconds
     t = threading.Timer(
         5,
         create_s3_file,
-        [f"{tmp_path}/{datestamp}.txt", "src/test.txt"],
+        [s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt"],
     )
     t.start()
     print(  # noqa: T201
@@ -430,9 +435,6 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     assert transfer_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_age_conditions_size(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-age-conditions", s3_age_conditions_task_definition
@@ -449,7 +451,7 @@ def test_s3_age_conditions_size(setup_bucket, tmp_path, s3_client):
 
     for file in files:
         file_name = os.path.basename(list(file.keys())[0])
-        create_s3_file(list(file.keys())[0], f"src/{file_name}")
+        create_s3_file(s3_client, list(file.keys())[0], f"src/{file_name}")
         # Sleep 6 seconds
         time.sleep(6)
 
@@ -461,9 +463,6 @@ def test_s3_age_conditions_size(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "dest/correct_file.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-file-size-conditions", s3_file_size_conditions_task_definition
@@ -478,7 +477,7 @@ def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
     fs.create_files(files)
     for file in files:
         file_name = os.path.basename(list(file.keys())[0])
-        create_s3_file(list(file.keys())[0], f"src/{file_name}")
+        create_s3_file(s3_client, list(file.keys())[0], f"src/{file_name}")
 
     assert transfer_obj.run()
 
@@ -488,9 +487,6 @@ def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "dest/correct_file.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
 
@@ -500,7 +496,7 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     # Write a test file locally
 
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
@@ -512,9 +508,40 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
+def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+
+    s3_to_s3_copy_task_definition_copy["source"]["bucket"] = "invalid-bucket"
+
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3-invalid-source", s3_to_s3_copy_task_definition_copy
+    )
+
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_s3_to_s3_invalid_destination(credentials, setup_bucket, s3_client, tmp_path):
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+
+    s3_to_s3_copy_task_definition_copy["destination"][0]["bucket"] = "invalid-bucket"
+
+    # Create a file to find
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3-invalid-destination", s3_to_s3_copy_task_definition_copy
+    )
+
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
+
+
 def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-with-fin", s3_to_s3_copy_with_fin_task_definition
@@ -526,7 +553,7 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
     # Write a test file locally
 
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
@@ -539,14 +566,14 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
     assert "dest/my_fin.fin" in object_keys
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition["destination"][0]["protocol"][
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+    s3_to_s3_copy_task_definition_copy["destination"][0]["protocol"][
         "disableBucketOwnerControlACL"
     ] = True
-    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3", s3_to_s3_copy_task_definition_copy
+    )
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -554,7 +581,7 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     # Write a test file locally
 
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
@@ -565,9 +592,6 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     assert objects["Contents"][0]["Key"] == "dest/test.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
@@ -579,7 +603,7 @@ def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     # Write a test file locally
 
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", f"src/{datestamp}.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", f"src/{datestamp}.txt")
 
     assert transfer_obj.run()
 
@@ -593,9 +617,6 @@ def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     assert "Contents" not in objects
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-move", s3_to_s3_pca_move_task_definition
@@ -604,7 +625,7 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     # Write a test file locally
 
     fs.create_files([{f"{tmp_path}/pca-move.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
+    create_s3_file(s3_client, f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
 
     assert transfer_obj.run()
 
@@ -619,9 +640,6 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "src/archive/pca-move.txt"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
@@ -630,7 +648,9 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     # Write a test file locally
     fs.create_files([{f"{tmp_path}/file-pca-rename-1234.txt": {"content": "test1234"}}])
     create_s3_file(
-        f"{tmp_path}/file-pca-rename-1234.txt", "src/file-pca-rename-1234.txt"
+        s3_client,
+        f"{tmp_path}/file-pca-rename-1234.txt",
+        "src/file-pca-rename-1234.txt",
     )
 
     assert transfer_obj.run()
@@ -647,7 +667,7 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     )
 
 
-def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
+def test_s3_to_ssh_copy(setup_bucket, s3_client, tmp_path, setup_ssh_keys):
     transfer_obj = transfer.Transfer(None, "s3-to-ssh", s3_to_ssh_copy_task_definition)
 
     # Create a file to watch for with the current date
@@ -655,14 +675,11 @@ def test_s3_to_ssh_copy(setup_bucket, tmp_path, setup_ssh_keys):
 
     # Write a test file locally
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     transfer_obj = transfer.Transfer(None, "ssh-to-s3", ssh_to_s3_copy_task_definition)
 
@@ -690,13 +707,10 @@ def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
     assert result.returncode == 0
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_s3_file_watch_custom_creds(
     setup_bucket,
     tmp_path,
-    cleanup_credentials,
+    s3_client,
 ):
     transfer_obj = transfer.Transfer(
         None, "s3-file-watch-custom-creds", s3_file_watch_custom_creds_task_definition
@@ -708,18 +722,14 @@ def test_s3_file_watch_custom_creds(
     # Write a test file locally
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
     # Write the dummy file to the test S3 bucket
-    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     assert transfer_obj.run()
 
 
-def create_s3_file(local_file, object_key):
-    subprocess.run(
-        [
-            "awslocal",
-            "s3",
-            "cp",
-            local_file,
-            f"s3://{BUCKET_NAME}/{object_key}",
-        ]
+def create_s3_file(s3_client, local_file, object_key):
+    s3_client.put_object(
+        Bucket=BUCKET_NAME,
+        Key=object_key,
+        Body=open(local_file, "rb"),
     )

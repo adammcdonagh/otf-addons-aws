@@ -18,7 +18,6 @@ from pytest_shell import fs
 
 from tests.fixtures.localstack import *  # noqa: F403, F405
 
-os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
 BUCKET_NAME = "otf-addons-aws-lambda-execution-test"
@@ -82,7 +81,7 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
         },
         Handler=f"{re.sub('.py', '', lambda_handler)}.lambda_handler",
         Role="arn:aws:iam::123456789012:role/lambda-role",
-        Timeout=300,
+        Timeout=10,
         MemorySize=128,
     )
     function_arn = lambda_response["FunctionArn"]
@@ -95,7 +94,12 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
             break
         counter += 1
         # If we get to 10, then fail the text
-        if counter >= 10:
+        limit = 10
+
+        # Give it more time if running in GitHub Actions
+        if github_actions():
+            limit = 30
+        if counter >= limit:
             raise Exception(
                 "Lambda function failed to become active in reasonable time"
             )
@@ -128,9 +132,6 @@ def setup_bucket(credentials):
         subprocess.run(["awslocal", "s3", "mb", f"s3://{bucket}"], check=False)
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_remote_handler(credentials):
     execution_obj = execution.Execution(
         None, "call-lambda-function", lambda_execution_task_definition
@@ -142,9 +143,6 @@ def test_remote_handler(credentials):
     assert execution_obj.remote_handlers[0].__class__.__name__ == "LambdaExecution"
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_run_lambda_function(credentials, lambda_client, s3_client, setup_bucket):
     function_arn = create_lambda_function(
         lambda_client,
@@ -215,9 +213,56 @@ def test_run_lambda_function(credentials, lambda_client, s3_client, setup_bucket
     assert execution_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
+def test_run_lambda_function_with_failure(credentials, lambda_client):
+    function_arn = create_lambda_function(lambda_client, "lambda_failure.py", {})
+
+    # Update the task definition with the ARN of the function we just created
+    lambda_execution_task_definition_copy = lambda_execution_task_definition.copy()
+    lambda_execution_task_definition_copy["functionArn"] = function_arn
+    lambda_execution_task_definition_copy["invocationType"] = "RequestResponse"
+
+    # Call the execution and check whether the lambda function ran successfully
+    execution_obj = execution.Execution(
+        None, "call-lambda-function-failure", lambda_execution_task_definition_copy
+    )
+
+    logging.getLogger("boto3").setLevel(logging.DEBUG)
+    logging.getLogger("botocore").setLevel(logging.DEBUG)
+
+    # Wait a second for the lambda to finish
+    time.sleep(2)
+
+    assert not execution_obj.run()
+
+
+def test_run_non_existent_lambda_function(credentials):
+    # Update the task definition with the ARN of the function we just created
+    lambda_execution_task_definition_copy = lambda_execution_task_definition.copy()
+    lambda_execution_task_definition_copy["functionArn"] = "invalid-arn"
+
+    # Call the execution and check whether the lambda function ran successfully
+    execution_obj = execution.Execution(
+        None,
+        "call-non-existent-lambda-function-failure",
+        lambda_execution_task_definition_copy,
+    )
+
+    logging.getLogger("boto3").setLevel(logging.DEBUG)
+    logging.getLogger("botocore").setLevel(logging.DEBUG)
+
+    assert not execution_obj.run()
+
+
+def test_run_lambda_function_with_invalid_config():
+    lambda_execution_task_definition_copy = lambda_execution_task_definition.copy()
+    del lambda_execution_task_definition_copy["functionArn"]
+    execution_obj = execution.Execution(
+        None, "call-lambda-function-invalid", lambda_execution_task_definition_copy
+    )
+    with pytest.raises(opentaskpy.exceptions.InvalidConfigError):
+        execution_obj.run()
+
+
 def test_run_lambda_function_with_invalid_payload(lambda_client):
     # Create the lambda function
     function_arn = create_lambda_function(
@@ -257,9 +302,6 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     assert execution_obj.run()
 
 
-@pytest.mark.skipif(
-    condition=github_actions(), reason="cannot run localstack tests in github actions"
-)
 def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
     # Create the function, but dont invoke it, as it runs too long
     function_arn = create_lambda_function(
@@ -268,6 +310,8 @@ def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
 
     # set the arn in lambda_execution_task_definition
     lambda_execution_task_definition["functionArn"] = function_arn
+    # Set invocationType to RequestResponse so that it blocks, and will timeout
+    lambda_execution_task_definition["invocationType"] = "RequestResponse"
 
     # We need to write the lambda execution definition to a file for the config_loader to read from
     with open(f"{tmpdir}/lambda_execution_task_definition.json", "w") as f:
@@ -278,10 +322,9 @@ def test_lambda_execution_batch_timeout(tmpdir, lambda_client):
 
     config_loader = ConfigLoader(tmpdir)
 
-    # Enable logging
-    del os.environ["OTF_NO_LOG"]
-
     batch_obj = batch.Batch(
         None, "timeout", lambda_batch_task_definition, config_loader
     )
-    assert batch_obj.run()
+
+    # Batch is configured to timeout first, though since we cannot kill the actual lambda thread, it'll still block until the lambda function times out
+    assert not batch_obj.run()

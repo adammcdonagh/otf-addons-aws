@@ -1,8 +1,15 @@
 # Changelog
 
+## v0.5.2
+
+- Add code coverage checks to GitHub workflow
+- Fix missing coverage in tests, and related bugs in code
+
 ## v0.5.1
 
 - Update JSON source schemas for S3 transfers.
+- Add badges to `README.md`
+- Add code coverage checks to GitHub workflow
 
 ## v0.5.0
 

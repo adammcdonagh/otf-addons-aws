@@ -1,4 +1,5 @@
 #!/bin/env python3
+# ruff: noqa
 
 import os
 
@@ -18,3 +19,5 @@ def lambda_handler(event, context):
     # Connect to S3 and write a dummy file
     s3 = boto3.resource("s3", **kwargs)
     s3.Bucket(bucket_name).put_object(Key=file_name, Body="this_is_a_test_file")
+    print("This is some lambda output")
+    print(event)

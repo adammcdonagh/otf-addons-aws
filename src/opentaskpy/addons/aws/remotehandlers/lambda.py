@@ -94,13 +94,14 @@ class LambdaExecution(RemoteExecutionHandler):
             invoke_response = self.lambda_client.invoke(
                 FunctionName=function_arn,
                 InvocationType=invocation_type,
+                LogType="Tail",
                 Payload=json.dumps(payload),
             )
 
             if (
                 invoke_response["StatusCode"] != 200
-                and invoke_response["StatusCode"] != 202
-            ):
+                and invocation_type == "RequestResponse"
+            ) or (invoke_response["StatusCode"] != 202 and invocation_type == "Event"):
                 self.logger.error(f"Failed to run lambda function: {function_arn}")
                 return False
 
