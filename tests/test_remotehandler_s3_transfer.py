@@ -402,13 +402,23 @@ def test_s3_file_watch(setup_bucket, tmp_path):
     datestamp = datetime.datetime.now().strftime("%Y%m%d")
 
     # Write a test file locally
-    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-
-    # Write the dummy file to the test S3 bucket
+    fs.create_files(
+        [
+            {f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}1.csv": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}2.pdf": {"content": "test1234"}},
+            {f"{tmp_path}/{datestamp}3.docx": {"content": "test1234"}},
+        ]
+    )
 
     with pytest.raises(exceptions.RemoteFileNotFoundError) as cm:
         transfer_obj.run()
     assert "No files found after " in cm.value.args[0]
+
+    # Upload the 3 non-matching files
+    for file in os.listdir(tmp_path):
+        if not file.endswith(".txt"):
+            create_s3_file(f"{tmp_path}/{file}", f"src/{file}")
 
     # This time write the contents after 5 seconds
     t = threading.Timer(
@@ -495,6 +505,40 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
         Key="dest/test.txt",
     )
     assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
+    s3_to_s3_copy_task_definition_copy = s3_to_s3_copy_task_definition.copy()
+
+    s3_to_s3_copy_task_definition_copy["source"]["bucket"] = "invalid-bucket"
+
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3-invalid-source", s3_to_s3_copy_task_definition_copy
+    )
+
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_s3_to_s3_invalid_destination(setup_bucket, s3_client, tmp_path):
+    s3_to_s3_copy_task_definition_copy = s3_to_s3_copy_task_definition.copy()
+
+    s3_to_s3_copy_task_definition_copy["destination"][0]["bucket"] = "invalid-bucket"
+
+    # Create a file to find
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3-invalid-destination", s3_to_s3_copy_task_definition_copy
+    )
+
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
 
 
 def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
