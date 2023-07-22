@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import threading
+from copy import deepcopy
 
 import pytest
 from opentaskpy.taskhandlers import transfer
@@ -508,7 +509,7 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
 
 
 def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition_copy = s3_to_s3_copy_task_definition.copy()
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
 
     s3_to_s3_copy_task_definition_copy["source"]["bucket"] = "invalid-bucket"
 
@@ -521,7 +522,7 @@ def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
 
 
 def test_s3_to_s3_invalid_destination(credentials, setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition_copy = s3_to_s3_copy_task_definition.copy()
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
 
     s3_to_s3_copy_task_definition_copy["destination"][0]["bucket"] = "invalid-bucket"
 
@@ -566,10 +567,13 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
 
 
 def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition["destination"][0]["protocol"][
+    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+    s3_to_s3_copy_task_definition_copy["destination"][0]["protocol"][
         "disableBucketOwnerControlACL"
     ] = True
-    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3", s3_to_s3_copy_task_definition_copy
+    )
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
