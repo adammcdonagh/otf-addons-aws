@@ -128,36 +128,40 @@ class S3Transfer(RemoteTransferHandler):
 
         remote_files = {}
 
-        while True:
-            response = self.s3_client.list_objects_v2(**kwargs)
+        try:
+            while True:
+                response = self.s3_client.list_objects_v2(**kwargs)
 
-            if response["KeyCount"]:
-                for object_ in response["Contents"]:
-                    key = object_["Key"]
-                    # Get the filename from the key
-                    filename = key.split("/")[-1]  #
-                    self.logger.debug(f"Found file: {filename}")
-                    if file_pattern and not re.match(file_pattern, filename):
-                        continue
+                if response["KeyCount"]:
+                    for object_ in response["Contents"]:
+                        key = object_["Key"]
+                        # Get the filename from the key
+                        filename = key.split("/")[-1]  #
+                        self.logger.debug(f"Found file: {filename}")
+                        if file_pattern and not re.match(file_pattern, filename):
+                            continue
 
-                    # Get the size and modified time
-                    file_attr = self.s3_client.head_object(
-                        Bucket=self.spec["bucket"], Key=key
-                    )
+                        # Get the size and modified time
+                        file_attr = self.s3_client.head_object(
+                            Bucket=self.spec["bucket"], Key=key
+                        )
 
-                    remote_files[key] = {
-                        "size": file_attr["ContentLength"],
-                        "modified_time": file_attr["LastModified"].timestamp(),
-                    }
+                        remote_files[key] = {
+                            "size": file_attr["ContentLength"],
+                            "modified_time": file_attr["LastModified"].timestamp(),
+                        }
 
-                # This handles the pagination
-                # if the NextContinuationToken doesn't exist, then we'll break out
-                # of the loop
-                try:
-                    kwargs["ContinuationToken"] = response["NextContinuationToken"]
-                except KeyError:
-                    break
-            break
+                    # This handles the pagination
+                    # if the NextContinuationToken doesn't exist, then we'll break out
+                    # of the loop
+                    try:
+                        kwargs["ContinuationToken"] = response["NextContinuationToken"]
+                    except KeyError:
+                        break
+                break
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            self.logger.error(f"Error listing files: {self.spec['bucket']}")
+            self.logger.error(e)
 
         return remote_files
 
