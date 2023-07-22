@@ -320,11 +320,9 @@ jobs:
           fail-on-cache-miss: true
           key: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{
             needs.prepare-base.outputs.python-key }}
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Start LocalStack
         run: |
-          pip install localstack awscli-local
+          . venv/bin/activate
           localstack start -d                       # Start LocalStack in the background
           echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
           localstack wait -t 30                     # to become ready before timing out
