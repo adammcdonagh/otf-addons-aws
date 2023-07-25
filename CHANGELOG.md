@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.3
+
+- Bump required version of `opentaskpy` to v0.13.0
+
 ## v0.5.2
 
 - Add code coverage checks to GitHub workflow
