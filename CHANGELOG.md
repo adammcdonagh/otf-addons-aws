@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.0
+
+- Add ability to trigger Fargate tasks
+- Fix minor typo in schemas to use the correct paths in `$id`
+
 ## v0.5.3
 
 - Bump required version of `opentaskpy` to v0.13.0

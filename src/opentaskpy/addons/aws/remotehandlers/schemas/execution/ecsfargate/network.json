@@ -1,0 +1,22 @@
+{
+  "$id": "http://localhost/execution/ecsfargate/network.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "awsvpcConfiguration": {
+      "type": "object",
+      "properties": {
+        "subnets": {
+          "type": "array"
+        },
+        "securityGroups": {
+          "type": "array"
+        },
+        "assignPublicIp": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}

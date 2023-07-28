@@ -1,11 +1,13 @@
 {
-  "$id": "http://localhost/execution/lambda/protocol.json",
+  "$id": "http://localhost/execution/ecsfargate/protocol.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "enum": ["opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution"]
+      "enum": [
+        "opentaskpy.addons.aws.remotehandlers.ecsfargate.FargateTaskExecution"
+      ]
     },
     "access_key_id": {
       "type": "string"
