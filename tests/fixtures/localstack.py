@@ -80,6 +80,7 @@ def cleanup_credentials():
     del os.environ["AWS_ACCESS_KEY_ID"]
     del os.environ["AWS_SECRET_ACCESS_KEY"]
     del os.environ["AWS_REGION"]
+    del os.environ["AWS_ENDPOINT_URL"]
 
 
 @pytest.fixture(scope="session")
