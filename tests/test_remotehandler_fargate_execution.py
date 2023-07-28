@@ -57,11 +57,11 @@ fargate_execution_task_definition = {
 }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def credentials_aws_dev():
     if not os.environ.get("GITHUB_ACTIONS"):
         # Look for a .env file in the root of the project
-        env_file = os.path.join(root_dir_, ".env")
+        env_file = os.path.join(root_dir_, "../.env")
         if os.path.isfile(env_file):
             with open(env_file) as f:
                 for line in f:

@@ -77,10 +77,14 @@ def credentials(localstack):
 
 @pytest.fixture(scope="session")
 def cleanup_credentials():
-    del os.environ["AWS_ACCESS_KEY_ID"]
-    del os.environ["AWS_SECRET_ACCESS_KEY"]
-    del os.environ["AWS_REGION"]
-    del os.environ["AWS_ENDPOINT_URL"]
+    if os.environ.get("AWS_ACCESS_KEY_ID"):
+        del os.environ["AWS_ACCESS_KEY_ID"]
+    if os.environ.get("AWS_SECRET_ACCESS_KEY"):
+        del os.environ["AWS_SECRET_ACCESS_KEY"]
+    if os.environ.get("AWS_REGION"):
+        del os.environ["AWS_REGION"]
+    if os.environ.get("AWS_ENDPOINT_URL"):
+        del os.environ["AWS_ENDPOINT_URL"]
 
 
 @pytest.fixture(scope="session")
