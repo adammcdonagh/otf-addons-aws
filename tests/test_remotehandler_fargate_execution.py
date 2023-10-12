@@ -10,7 +10,7 @@ import pytest
 from moto import mock_ecs
 from opentaskpy.taskhandlers import execution
 
-from opentaskpy.addons.aws.remotehandlers.ecs import FargateTaskExecution
+from opentaskpy.addons.aws.remotehandlers.ecsfargate import FargateTaskExecution
 from tests.fixtures.localstack import *  # noqa: F403, F405
 from tests.fixtures.moto import *  # noqa: F403, F405
 
