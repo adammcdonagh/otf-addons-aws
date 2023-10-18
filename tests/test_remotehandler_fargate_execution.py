@@ -70,9 +70,15 @@ def credentials_aws_dev():
                     key, value = line.strip().split("=")
                     os.environ[key] = value
 
-    if not os.environ.get("AWS_ACCESS_KEY_ID"):
+    if not os.environ.get("GH_AWS_ACCESS_KEY_ID"):
         print("ERROR: Missing AWS creds")  # noqa: T201
         assert False
+
+    if os.environ.get("GITHUB_ACTIONS"):
+        # Read the AWS credentials from the environment
+        os.environ["AWS_ACCESS_KEY_ID"] = os.environ["GH_AWS_ACCESS_KEY_ID"]
+        os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["GH_AWS_SECRET_ACCESS_KEY"]
+        os.environ["AWS_DEFAULT_REGION"] = os.environ["GH_AWS_DEFAULT_REGION"]
 
 
 def create_ecs_cluster():
