@@ -147,7 +147,7 @@ def test_remote_handler(cleanup_credentials, credentials_moto):
     assert execution_obj.remote_handlers[0].__class__.__name__ == "FargateTaskExecution"
 
 
-def test_run_fargate_task(cleanup_credentials, credentials_aws_dev):
+def test_run_fargate_task(credentials_aws_dev):
     create_ecs_cluster()
     create_fargate_task()
 
@@ -161,7 +161,7 @@ def test_run_fargate_task(cleanup_credentials, credentials_aws_dev):
     assert fargate_task_execution.execute()
 
 
-def test_run_fargate_task_fail(cleanup_credentials, credentials_aws_dev):
+def test_run_fargate_task_fail(credentials_aws_dev):
     create_ecs_cluster()
     create_fargate_task()
 
