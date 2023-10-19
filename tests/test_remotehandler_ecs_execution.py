@@ -75,14 +75,14 @@ def credentials_aws_dev():
         for key, value in os.environ.items():
             print(f"{key}={value}")  # noqa: T201
 
-        if not os.environ.get("GH_AWS_ACCESS_KEY_ID"):
+        if not os.environ.get("ECS_AWS_ACCESS_KEY_ID"):
             print("ERROR: Missing AWS creds")  # noqa: T201
             assert False
 
         # Read the AWS credentials from the environment
-        os.environ["AWS_ACCESS_KEY_ID"] = os.environ["GH_AWS_ACCESS_KEY_ID"]
-        os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["GH_AWS_SECRET_ACCESS_KEY"]
-        os.environ["AWS_DEFAULT_REGION"] = os.environ["GH_AWS_DEFAULT_REGION"]
+        os.environ["AWS_ACCESS_KEY_ID"] = os.environ["ECS_AWS_ACCESS_KEY_ID"]
+        os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["ECS_AWS_SECRET_ACCESS_KEY"]
+        os.environ["AWS_DEFAULT_REGION"] = os.environ["ECS_AWS_DEFAULT_REGION"]
 
 
 def create_ecs_cluster():
