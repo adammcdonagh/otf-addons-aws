@@ -328,6 +328,10 @@ jobs:
           localstack wait -t 30                     # to become ready before timing out
           echo "Startup complete"
       - name: Run tests
+        env:
+          ECS_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          ECS_AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ECS_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           . venv/bin/activate
           pip install -U .
