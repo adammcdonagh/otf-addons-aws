@@ -7,7 +7,6 @@ import boto3
 import botocore.exceptions
 import opentaskpy.otflogging
 import pytest
-from moto import mock_ecs
 from opentaskpy.taskhandlers import execution
 
 from opentaskpy.addons.aws.remotehandlers.ecsfargate import FargateTaskExecution
@@ -83,13 +82,15 @@ def credentials_aws_dev():
             del os.environ["AWS_ENDPOINT_URL"]
 
 
-def create_ecs_cluster():
+def create_ecs_cluster(credentials_aws_dev):
     # Print all env vars that start with AWS
     for key, value in os.environ.items():
         if key.startswith("AWS"):
             print(f"{key}: {value}")
 
-    client = boto3.client("ecs")
+    session = boto3.session.Session()
+
+    client = session.client("ecs")
     # Check to see if the ECS cluster exists
     try:
         response = client.describe_clusters(clusters=["test_cluster"])
@@ -108,7 +109,9 @@ def create_ecs_cluster():
 
 
 def create_fargate_task():
-    client = boto3.client("ecs")
+    session = boto3.session.Session()
+
+    client = session.client("ecs")
 
     # Check to see if the task definition exists
     try:

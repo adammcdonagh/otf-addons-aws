@@ -44,7 +44,9 @@ class FargateTaskExecution(RemoteExecutionHandler):
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.ecs_client = boto3.client("ecs", **kwargs)
+        session = boto3.session.Session()
+
+        self.ecs_client = session.client("ecs", **kwargs)
 
     def kill(self) -> None:
         """Kill the fargate task function.
