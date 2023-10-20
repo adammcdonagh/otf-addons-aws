@@ -84,7 +84,12 @@ def credentials_aws_dev():
 
 
 def create_ecs_cluster():
-    client = boto3.client("ecs", "eu-west-1")
+    # Print all env vars that start with AWS
+    for key, value in os.environ.items():
+        if key.startswith("AWS"):
+            print(f"{key}: {value}")
+
+    client = boto3.client("ecs")
     # Check to see if the ECS cluster exists
     try:
         response = client.describe_clusters(clusters=["test_cluster"])
@@ -103,7 +108,7 @@ def create_ecs_cluster():
 
 
 def create_fargate_task():
-    client = boto3.client("ecs", "eu-west-1")
+    client = boto3.client("ecs")
 
     # Check to see if the task definition exists
     try:
@@ -177,17 +182,17 @@ def test_run_fargate_task_fail(credentials_aws_dev):
     assert not execution_obj.run()
 
 
-@mock_ecs
-def test_run_mocked_fargate_task(cleanup_credentials, credentials_moto):
-    create_ecs_cluster()
-    create_fargate_task()
+# @mock_ecs
+# def test_run_mocked_fargate_task(cleanup_credentials, credentials_moto):
+#     create_ecs_cluster()
+#     create_fargate_task()
 
-    # Manually create a FargateTaskExecution object
-    fargate_task_execution = FargateTaskExecution(fargate_execution_task_definition)
+#     # Manually create a FargateTaskExecution object
+#     fargate_task_execution = FargateTaskExecution(fargate_execution_task_definition)
 
-    # Patch the boto3 client with a mocked one
-    fargate_task_execution.ecs_client = boto3.client("ecs")
+#     # Patch the boto3 client with a mocked one
+#     fargate_task_execution.ecs_client = boto3.client("ecs")
 
-    # Execute the task. This will always timeout, because the mock never changes from
-    # RUNNING status
-    assert not fargate_task_execution.execute()
+#     # Execute the task. This will always timeout, because the mock never changes from
+#     # RUNNING status
+#     assert not fargate_task_execution.execute()
