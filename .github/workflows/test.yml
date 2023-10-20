@@ -328,10 +328,25 @@ jobs:
           localstack wait -t 30                     # to become ready before timing out
           echo "Startup complete"
       - name: Run tests
+        env:
+          ECS_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          ECS_AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ECS_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           . venv/bin/activate
           pip install -U .
           python -m pytest --cov="opentaskpy.addons.aws" --cov="opentaskpy.plugins.aws" --cov-report=xml
+      - name: Debugging with ssh
+        uses: lhotari/action-upterm@v1
+        if: ${{ failure() }}
+        with:
+          # If no one connects after 5 minutes, shut down server.
+          wait-timeout-minutes: 5
+        env:
+          ECS_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          ECS_AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ECS_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:

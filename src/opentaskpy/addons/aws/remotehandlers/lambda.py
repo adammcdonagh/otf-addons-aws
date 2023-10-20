@@ -48,15 +48,18 @@ class LambdaExecution(RemoteExecutionHandler):
             "region_name": self.region_name,
         }
         # If there's an override for endpoint_url in the environment, then use that
+        kwargs2 = {}
         if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
         # Set the client to only try once. This prevents the lambda function being called more than once
         # and issues when working with batch timeouts if a lambda function takes longer than the batch timeout
         # It still means that the timeout of a lambda function is always at least 60 seconds due to the way boto3's HTTP timeout works
-        kwargs["config"] = botocore.client.Config(retries={"max_attempts": 0})
+        kwargs2["config"] = botocore.client.Config(retries={"max_attempts": 0})
 
-        self.lambda_client = boto3.client("lambda", **kwargs)
+        self.session = boto3.session.Session(**kwargs)
+
+        self.lambda_client = self.session.client("lambda", **kwargs2)
 
     def kill(self) -> None:
         """Kill the lambda function.

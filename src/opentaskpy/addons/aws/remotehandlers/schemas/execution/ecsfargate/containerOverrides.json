@@ -1,0 +1,32 @@
+{
+  "$id": "http://localhost/execution/ecsfargate/containerOverrides.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "array",
+      "description": "A list containing the command to override and it's arguments",
+      "items": {
+        "type": "string",
+        "minimum": 1
+      }
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "value"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,43 @@
+{
+  "$id": "http://localhost/execution/ecsfargate/ecsfargate.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["execution"]
+    },
+    "clusterName": {
+      "type": "string"
+    },
+    "taskFamily": {
+      "type": "string"
+    },
+    "timeout": {
+      "type": "integer"
+    },
+    "initTimeout": {
+      "type": "integer"
+    },
+    "containerOverrides": {
+      "$ref": "containerOverrides.json"
+    },
+    "cloudwatchLogGroupName": {
+      "type": "string"
+    },
+    "networkConfiguration": {
+      "$ref": "network.json"
+    },
+    "protocol": {
+      "$ref": "protocol.json"
+    }
+  },
+  "required": [
+    "type",
+    "clusterName",
+    "taskFamily",
+    "networkConfiguration",
+    "protocol"
+  ],
+  "additionalProperties": false
+}

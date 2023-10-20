@@ -1,0 +1,17 @@
+{
+  "type": "execution",
+  "clusterName": "AWSBatch-opentaskpy-1-f96dd35f-b4a7-30c4-9d5b-48b0fba5bffd",
+  "taskFamily": "opentaskpy-aws",
+  "containerOverrides": {
+    "command": "echo \"${TEST}\"",
+    "environment": [
+      { "name": "TEST", "value": "test_env_var" },
+      { "name": "TEST2", "value": "test2" }
+    ]
+  },
+  "cloudwatch_log_group_name": "test",
+  "timeout": 10,
+  "protocol": {
+    "name": "opentaskpy.addons.aws.remotehandlers.ecsfargate.FargateTaskExecution"
+  }
+}
