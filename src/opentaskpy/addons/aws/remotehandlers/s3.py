@@ -45,7 +45,7 @@ class S3Transfer(RemoteTransferHandler):
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.s3_client = boto3.client("s3", **kwargs)
+        self.s3_client = self.session.client("s3", **kwargs)
 
     def supports_direct_transfer(self) -> bool:
         """Return True, as you can do bucket to bucket transfers."""
@@ -353,7 +353,9 @@ class S3Execution(RemoteExecutionHandler):
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.s3_client = boto3.client("s3", **kwargs)
+        self.session = boto3.session.Session()
+
+        self.s3_client = self.session.client("s3", **kwargs)
 
     # This cannot be long running, so kill doesn't really need to do anything
     def kill(self) -> None:

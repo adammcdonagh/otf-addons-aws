@@ -44,9 +44,9 @@ class FargateTaskExecution(RemoteExecutionHandler):
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        session = boto3.session.Session()
+        self.session = boto3.session.Session()
 
-        self.ecs_client = session.client("ecs", **kwargs)
+        self.ecs_client = self.session.client("ecs", **kwargs)
 
     def kill(self) -> None:
         """Kill the fargate task function.
@@ -190,7 +190,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
             # Do we need to obtain logs?
             if self.spec.get("cloudwatchLogGroupName"):
                 # Get the log events
-                log_events = boto3.client("logs").get_log_events(
+                log_events = self.session.client("logs").get_log_events(
                     logGroupName=self.spec["cloudwatchLogGroupName"],
                     logStreamName=f"{task}/{container_name}/{self.fargate_task_id}",
                 )

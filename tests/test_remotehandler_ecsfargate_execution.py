@@ -160,9 +160,6 @@ def test_run_fargate_task(credentials_aws_dev):
     # Manually create a FargateTaskExecution object
     fargate_task_execution = FargateTaskExecution(fargate_execution_task_definition)
 
-    # Patch the boto3 client with a mocked one
-    fargate_task_execution.ecs_client = boto3.client("ecs")
-
     # Execute the task
     assert fargate_task_execution.execute()
 

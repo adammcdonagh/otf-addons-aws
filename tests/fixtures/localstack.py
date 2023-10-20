@@ -93,7 +93,8 @@ def ssm_client(localstack, credentials):
         "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
-    return boto3.client("ssm", **kwargs)
+    session = boto3.session.Session(**kwargs)
+    return session.client("ssm")
 
 
 @pytest.fixture(scope="session")
@@ -102,7 +103,8 @@ def lambda_client(localstack, credentials):
         "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
-    return boto3.client("lambda", **kwargs)
+    session = boto3.session.Session(**kwargs)
+    return session.client("lambda")
 
 
 @pytest.fixture(scope="session")
@@ -111,4 +113,5 @@ def s3_client(localstack, credentials):
         "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
-    return boto3.client("s3", **kwargs)
+    session = boto3.session.Session(**kwargs)
+    return session.client("s3")

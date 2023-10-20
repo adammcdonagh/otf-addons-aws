@@ -56,7 +56,9 @@ class LambdaExecution(RemoteExecutionHandler):
         # It still means that the timeout of a lambda function is always at least 60 seconds due to the way boto3's HTTP timeout works
         kwargs["config"] = botocore.client.Config(retries={"max_attempts": 0})
 
-        self.lambda_client = boto3.client("lambda", **kwargs)
+        self.session = boto3.session.Session()
+
+        self.lambda_client = self.session.client("lambda", **kwargs)
 
     def kill(self) -> None:
         """Kill the lambda function.

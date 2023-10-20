@@ -68,7 +68,8 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
 
     result = None
     try:
-        ssm = boto3.client("ssm", **boto3_kwargs)
+        session = boto3.session.Session()
+        ssm = session.client("ssm", **boto3_kwargs)
         response = ssm.get_parameter(Name=kwargs["name"], WithDecryption=True)
         result = response["Parameter"]["Value"]
 
