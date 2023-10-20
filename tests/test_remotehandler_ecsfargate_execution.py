@@ -79,6 +79,7 @@ def credentials_aws_dev():
         os.environ["AWS_ACCESS_KEY_ID"] = os.environ["ECS_AWS_ACCESS_KEY_ID"]
         os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["ECS_AWS_SECRET_ACCESS_KEY"]
         os.environ["AWS_DEFAULT_REGION"] = os.environ["ECS_AWS_DEFAULT_REGION"]
+        del os.environ["AWS_ENDPOINT_URL"]
 
 
 def create_ecs_cluster():
