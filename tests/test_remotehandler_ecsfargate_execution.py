@@ -71,10 +71,6 @@ def credentials_aws_dev():
                     os.environ[key] = value
 
     if os.environ.get("GITHUB_ACTIONS"):
-        # Print the environment variables
-        for key, value in os.environ.items():
-            print(f"{key}={value}")  # noqa: T201
-
         if not os.environ.get("ECS_AWS_ACCESS_KEY_ID"):
             print("ERROR: Missing AWS creds")  # noqa: T201
             assert False
@@ -136,7 +132,7 @@ def create_fargate_task():
     return response["taskDefinition"]["family"]
 
 
-def test_remote_handler(cleanup_credentials, credentials_moto):
+def test_remote_handler(credentials):
     execution_obj = execution.Execution(
         None, "run-fargate-task", fargate_execution_task_definition
     )
