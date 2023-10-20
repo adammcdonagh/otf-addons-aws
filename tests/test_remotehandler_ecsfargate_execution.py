@@ -10,8 +10,8 @@ import pytest
 from opentaskpy.taskhandlers import execution
 
 from opentaskpy.addons.aws.remotehandlers.ecsfargate import FargateTaskExecution
-from tests.fixtures.localstack import *  # noqa: F403, F405
-from tests.fixtures.moto import *  # noqa: F403, F405
+from tests.fixtures.localstack import *  # noqa: F403, F405, F401
+from tests.fixtures.moto import *  # noqa: F403, F405, F401
 
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
@@ -83,11 +83,6 @@ def credentials_aws_dev():
 
 
 def create_ecs_cluster():
-    # Print all env vars that start with AWS
-    for key, value in os.environ.items():
-        if key.startswith("AWS"):
-            print(f"{key}: {value}")
-
     session = boto3.session.Session()
 
     client = session.client("ecs")
