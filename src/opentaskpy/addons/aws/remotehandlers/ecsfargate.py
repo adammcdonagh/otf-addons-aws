@@ -47,7 +47,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
 
         self.session = boto3.session.Session(**kwargs)
 
-        self.s3_client = self.session.client("ecs", **kwargs2)
+        self.ecs_client = self.session.client("ecs", **kwargs2)
 
     def kill(self) -> None:
         """Kill the fargate task function.
