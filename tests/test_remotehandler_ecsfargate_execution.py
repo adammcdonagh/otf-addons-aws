@@ -82,7 +82,7 @@ def credentials_aws_dev():
             del os.environ["AWS_ENDPOINT_URL"]
 
 
-def create_ecs_cluster(credentials_aws_dev):
+def create_ecs_cluster():
     # Print all env vars that start with AWS
     for key, value in os.environ.items():
         if key.startswith("AWS"):
