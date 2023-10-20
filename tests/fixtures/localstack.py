@@ -90,28 +90,25 @@ def cleanup_credentials():
 @pytest.fixture(scope="session")
 def ssm_client(localstack, credentials):
     kwargs = {
-        "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("ssm")
+    return session.client("ssm", endpoint_url=localstack)
 
 
 @pytest.fixture(scope="session")
 def lambda_client(localstack, credentials):
     kwargs = {
-        "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("lambda")
+    return session.client("lambda", endpoint_url=localstack)
 
 
 @pytest.fixture(scope="session")
 def s3_client(localstack, credentials):
     kwargs = {
-        "endpoint_url": localstack,
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("s3")
+    return session.client("s3", endpoint_url=localstack)

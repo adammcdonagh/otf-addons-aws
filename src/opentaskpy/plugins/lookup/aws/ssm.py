@@ -63,13 +63,14 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
         "region_name": region_name,
     }
     # If there's an override for endpoint_url in the environment, then use that
+    kwargs2 = {}
     if os.environ.get("AWS_ENDPOINT_URL"):
-        boto3_kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+        kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
     result = None
     try:
         session = boto3.session.Session(**boto3_kwargs)
-        ssm = session.client("ssm")
+        ssm = session.client("ssm", **kwargs2)
         response = ssm.get_parameter(Name=kwargs["name"], WithDecryption=True)
         result = response["Parameter"]["Value"]
 

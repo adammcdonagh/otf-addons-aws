@@ -41,12 +41,13 @@ class FargateTaskExecution(RemoteExecutionHandler):
             "region_name": self.region_name,
         }
         # If there's an override for endpoint_url in the environment, then use that
+        kwargs2 = {}
         if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.session = boto3.session.Session()
+        self.session = boto3.session.Session(**kwargs)
 
-        self.ecs_client = self.session.client("ecs", **kwargs)
+        self.s3_client = self.session.client("ecs", **kwargs2)
 
     def kill(self) -> None:
         """Kill the fargate task function.
