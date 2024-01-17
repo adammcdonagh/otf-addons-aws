@@ -93,12 +93,12 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
         if lambda_response["Configuration"]["State"] == "Active":
             break
         counter += 1
-        # If we get to 10, then fail the text
-        limit = 10
+        # If we get to 10, then fail the test
+        limit = 20
 
         # Give it more time if running in GitHub Actions
         if github_actions():
-            limit = 30
+            limit = 45
         if counter >= limit:
             raise Exception(
                 "Lambda function failed to become active in reasonable time"
