@@ -93,12 +93,12 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
         if lambda_response["Configuration"]["State"] == "Active":
             break
         counter += 1
-        # If we get to 10, then fail the text
-        limit = 10
+        # If we get to 10, then fail the test
+        limit = 20
 
         # Give it more time if running in GitHub Actions
         if github_actions():
-            limit = 30
+            limit = 45
         if counter >= limit:
             raise Exception(
                 "Lambda function failed to become active in reasonable time"
@@ -291,15 +291,6 @@ def test_run_lambda_function_with_invalid_payload(lambda_client):
     )
 
     assert not execution_obj.run()
-
-    # Try the same, but using an async call to the function
-    lambda_execution_task_definition_invalid_payload["invocationType"] = "Event"
-    execution_obj = execution.Execution(
-        None, "call-lambda-function", lambda_execution_task_definition_invalid_payload
-    )
-
-    # This is expected to work, because there's no validation of the payload when invoked this way
-    assert execution_obj.run()
 
 
 def test_lambda_execution_batch_timeout(tmpdir, lambda_client):

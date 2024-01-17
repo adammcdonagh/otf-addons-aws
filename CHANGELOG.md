@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.1
+
+- Increase timeout for lambda function creation test
+- Add missing schema for S3 transfer - PostCopyAction
+
 ## v0.6.0
 
 - Add ability to trigger Fargate tasks
