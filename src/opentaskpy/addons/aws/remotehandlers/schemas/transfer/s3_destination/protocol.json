@@ -18,65 +18,24 @@
     },
     "region_name": {
       "type": "string"
-    },
-    "bucket_owner_full_control": {
-      "type": "boolean"
     }
   },
-  "oneOf": [
+  "required": ["name"],
+  "additionalProperties": false,
+  "allOf": [
     {
-      "properties": {
-        "access_key_id": {
-          "not": {}
+      "if": {
+        "properties": {
+          "access_key_id": { "type": "string" }
         },
-        "secret_access_key": {
-          "not": {}
+        "required": ["access_key_id"]
+      },
+      "then": {
+        "properties": {
+          "secret_access_key": { "type": "string" }
         },
-        "assume_role_arn": {
-          "not": {}
-        }
-      }
-    },
-    {
-      "properties": {
-        "access_key_id": {
-          "not": {}
-        },
-        "secret_access_key": {
-          "not": {}
-        },
-        "assume_role_arn": {
-          "type": "string"
-        }
-      }
-    },
-    {
-      "properties": {
-        "access_key_id": {
-          "type": "string"
-        },
-        "secret_access_key": {
-          "type": "string"
-        },
-        "assume_role_arn": {
-          "not": {}
-        }
-      }
-    },
-    {
-      "properties": {
-        "access_key_id": {
-          "type": "string"
-        },
-        "secret_access_key": {
-          "type": "string"
-        },
-        "assume_role_arn": {
-          "type": "string"
-        }
+        "required": ["secret_access_key"]
       }
     }
-  ],
-  "required": ["name"],
-  "additionalProperties": false
+  ]
 }
