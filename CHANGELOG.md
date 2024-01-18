@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.0
+
+- Add ability to use AssumeRole in protocol definition
+
 ## v0.6.1
 
 - Increase timeout for lambda function creation test

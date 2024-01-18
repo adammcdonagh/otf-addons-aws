@@ -26,6 +26,7 @@ Credentials can be set via config using equivalently named variables alongside t
     "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
     "access_key_id": "some_key",
     "secret_access_key": "some_secret_key",
+    "assume_role_arn": "arn:aws:iam::000000000000:role/some_role",
     "region_name": "eu-west-1"
 }
 ```

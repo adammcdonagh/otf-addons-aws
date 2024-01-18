@@ -1,7 +1,9 @@
 """AWS S3 remote handler."""
+
 import glob
 import os
 import re
+from time import time
 
 import boto3
 import opentaskpy.otflogging
@@ -49,6 +51,12 @@ class S3Transfer(RemoteTransferHandler):
         self.session = boto3.session.Session(**kwargs)
 
         self.s3_client = self.session.client("s3", **kwargs2)
+
+        # If we have an assume role, then we need to assume it
+        if self.assume_role_arn:
+            self.s3_client.assume_role(
+                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
+            )
 
     def supports_direct_transfer(self) -> bool:
         """Return True, as you can do bucket to bucket transfers."""

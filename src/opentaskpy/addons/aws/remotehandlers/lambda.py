@@ -1,7 +1,9 @@
 """AWS Lambda remote handler."""
+
 import base64
 import json
 import os
+from time import time
 
 import boto3
 import botocore.exceptions
@@ -60,6 +62,12 @@ class LambdaExecution(RemoteExecutionHandler):
         self.session = boto3.session.Session(**kwargs)
 
         self.lambda_client = self.session.client("lambda", **kwargs2)
+
+        # If we have an assume role, then we need to assume it
+        if self.assume_role_arn:
+            self.lambda_client.assume_role(
+                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
+            )
 
     def kill(self) -> None:
         """Kill the lambda function.

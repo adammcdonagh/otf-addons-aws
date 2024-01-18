@@ -13,10 +13,67 @@
     "secret_access_key": {
       "type": "string"
     },
+    "assume_role_arn": {
+      "type": "string"
+    },
     "region_name": {
       "type": "string"
     }
   },
+  "oneOf": [
+    {
+      "properties": {
+        "access_key_id": {
+          "not": {}
+        },
+        "secret_access_key": {
+          "not": {}
+        },
+        "assume_role_arn": {
+          "not": {}
+        }
+      }
+    },
+    {
+      "properties": {
+        "access_key_id": {
+          "not": {}
+        },
+        "secret_access_key": {
+          "not": {}
+        },
+        "assume_role_arn": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "properties": {
+        "access_key_id": {
+          "type": "string"
+        },
+        "secret_access_key": {
+          "type": "string"
+        },
+        "assume_role_arn": {
+          "not": {}
+        }
+      }
+    },
+    {
+      "properties": {
+        "access_key_id": {
+          "type": "string"
+        },
+        "secret_access_key": {
+          "type": "string"
+        },
+        "assume_role_arn": {
+          "type": "string"
+        }
+      }
+    }
+  ],
   "required": ["name"],
   "additionalProperties": false
 }
