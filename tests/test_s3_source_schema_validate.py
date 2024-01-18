@@ -11,6 +11,41 @@ def valid_protocol_definition():
 
 
 @pytest.fixture(scope="function")
+def valid_protocol_definition_using_keys():
+    return {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "access_key_id": "12345",
+        "secret_access_key": "12345",
+    }
+
+
+@pytest.fixture(scope="function")
+def invalid_protocol_definition_using_keys_no_secret():
+    return {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "access_key_id": "12345",
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_protocol_definition_using_assume_role():
+    return {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "assume_role_arn": "12345",
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_protocol_definition_using_assume_role_and_keys():
+    return {
+        "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        "assume_role_arn": "12345",
+        "access_key_id": "12345",
+        "secret_access_key": "12345",
+    }
+
+
+@pytest.fixture(scope="function")
 def valid_transfer(valid_protocol_definition):
     return {
         "bucket": "test-bucket",
@@ -27,6 +62,33 @@ def valid_destination(valid_protocol_definition):
         "directory": "/dest",
         "protocol": valid_protocol_definition,
     }
+
+
+def test_s3_source_protocol(
+    valid_transfer,
+    valid_protocol_definition_using_assume_role,
+    valid_protocol_definition_using_keys,
+    invalid_protocol_definition_using_keys_no_secret,
+    valid_protocol_definition_using_assume_role_and_keys,
+):
+    json_data = {
+        "type": "transfer",
+        "source": valid_transfer,
+    }
+
+    json_data["source"]["protocol"] = valid_protocol_definition_using_assume_role
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["protocol"] = valid_protocol_definition_using_keys
+    assert validate_transfer_json(json_data)
+
+    json_data["source"][
+        "protocol"
+    ] = valid_protocol_definition_using_assume_role_and_keys
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["protocol"] = invalid_protocol_definition_using_keys_no_secret
+    assert not validate_transfer_json(json_data)
 
 
 def test_s3_source_basic(valid_transfer):

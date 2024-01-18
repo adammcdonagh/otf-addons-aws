@@ -1,6 +1,7 @@
 """AWS Fargate Task remote handler."""
+
 import os
-import time
+from time import sleep, time
 
 import boto3
 import botocore.exceptions
@@ -48,6 +49,12 @@ class FargateTaskExecution(RemoteExecutionHandler):
         self.session = boto3.session.Session(**kwargs)
 
         self.ecs_client = self.session.client("ecs", **kwargs2)
+
+        # If we have an assume role, then we need to assume it
+        if self.assume_role_arn:
+            self.ecs_client.assume_role(
+                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
+            )
 
     def kill(self) -> None:
         """Kill the fargate task function.
@@ -169,7 +176,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
                 if timeout != -1:
                     timeout -= 5
 
-                time.sleep(5)
+                sleep(5)
 
             # If we've got this far, then the task has finished. We need to check the
             # status to see if it succeeded or failed, and if necessary, also pull the

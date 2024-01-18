@@ -1,4 +1,5 @@
 """AWS helper functions."""
+
 import os
 
 
@@ -18,6 +19,12 @@ def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
         obj.spec["protocol"]["secret_access_key"]
         if "secret_access_key" in obj.spec["protocol"]
         else os.environ.get("AWS_SECRET_ACCESS_KEY")
+    )
+
+    obj.assume_role_arn = (
+        obj.spec["protocol"]["assume_role_arn"]
+        if "asssume_role_arn" in obj.spec["protocol"]
+        else os.environ.get("AWS_ROLE_ARN")
     )
 
     obj.region_name = (
