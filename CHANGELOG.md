@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.1
+
+- Ensure AssumeRole gets run and creds created correctly
+
 ## v0.7.0
 
 - Add ability to use AssumeRole in protocol definition

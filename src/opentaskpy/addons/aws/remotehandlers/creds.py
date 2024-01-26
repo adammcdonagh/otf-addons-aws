@@ -23,7 +23,7 @@ def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
 
     obj.assume_role_arn = (
         obj.spec["protocol"]["assume_role_arn"]
-        if "asssume_role_arn" in obj.spec["protocol"]
+        if "assume_role_arn" in obj.spec["protocol"]
         else os.environ.get("AWS_ROLE_ARN")
     )
 

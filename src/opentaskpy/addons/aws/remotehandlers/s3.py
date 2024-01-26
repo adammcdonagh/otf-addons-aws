@@ -32,6 +32,9 @@ class S3Transfer(RemoteTransferHandler):
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
+        self.aws_access_key_id: str | None = None
+        self.aws_secret_access_key: str | None = None
+        self.region_name: str | None = None
 
         super().__init__(spec)
 
@@ -50,13 +53,26 @@ class S3Transfer(RemoteTransferHandler):
 
         self.session = boto3.session.Session(**kwargs)
 
-        self.s3_client = self.session.client("s3", **kwargs2)
-
-        # If we have an assume role, then we need to assume it
         if self.assume_role_arn:
-            self.s3_client.assume_role(
+            self.sts_client = self.session.client("sts", **kwargs2)
+
+            assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
             )
+            temporary_creds = assumed_role_object["Credentials"]
+            # Set the credentials
+            self.aws_access_key_id = temporary_creds["AccessKeyId"]
+            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
+
+            # Set these in the session
+            self.session = boto3.session.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                aws_session_token=temporary_creds["SessionToken"],
+                region_name=self.region_name,
+            )
+
+        self.s3_client = self.session.client("s3", **kwargs2)
 
     def supports_direct_transfer(self) -> bool:
         """Return True, as you can do bucket to bucket transfers."""
