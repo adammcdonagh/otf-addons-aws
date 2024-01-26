@@ -211,6 +211,31 @@ s3_to_s3_pca_move_task_definition = {
     ],
 }
 
+s3_to_s3_assume_role_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "file-assumerole\\.txt",
+        "postCopyAction": {
+            "action": "delete",
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            "assume_role_arn": "arn:aws:iam::01234567890:role/dummy-role",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
 
 s3_to_s3_pca_rename_task_definition = {
     "type": "transfer",
@@ -590,6 +615,31 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
     assert objects["Contents"][0]["Key"] == "dest/test.txt"
+
+
+def test_s3_to_s3_assume_role(setup_bucket, tmp_path, s3_client):
+    transfer_obj = transfer.Transfer(
+        None, "s3-to-s3-assume_role", s3_to_s3_assume_role_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/file-assumerole.txt": {"content": "test1234"}}])
+    create_s3_file(
+        s3_client, f"{tmp_path}/file-assumerole.txt", "src/file-assumerole.txt"
+    )
+
+    assert transfer_obj.run()
+
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    # check that the correct_file.txt is in the bucket, and not the other 2
+    assert len(objects["Contents"]) == 1
+    assert objects["Contents"][0]["Key"] == "dest/file-assumerole.txt"
+
+    # Check that the file is not in the source bucket
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME)
+    assert "Contents" not in objects
 
 
 def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
