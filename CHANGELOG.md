@@ -1,7 +1,8 @@
 # Changelog
 
-## v0.7.2
+## v24.4.1
 
+- Change version numbering format
 - Allow forcing S3 transfers to proxy rather than using CopyObject. This prevents permission issues when trying to do cross account transfers where also using AssumeRole.
 
 ## v0.7.1
