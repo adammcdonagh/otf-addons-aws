@@ -7,6 +7,7 @@ from time import time
 
 import boto3
 import opentaskpy.otflogging
+from botocore.exceptions import ClientError
 from opentaskpy.remotehandlers.remotehandler import (
     RemoteExecutionHandler,
     RemoteTransferHandler,
@@ -102,9 +103,12 @@ class S3Transfer(RemoteTransferHandler):
             for file in files:
                 try:
                     self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
-                except Exception as e:
+                except ClientError as e:
+                    # If it's a 404 then its good
+                    if e.response["Error"]["Code"] == "404":
+                        continue
+                    # Otherwise, it's an error
                     self.logger.error(e)
-                    self.logger.error(f"Failed to delete file: {file}")
                     return 1
 
         # Copy the files to the new location, and then delete the originals
@@ -155,9 +159,12 @@ class S3Transfer(RemoteTransferHandler):
                 # Check that the delete worked
                 try:
                     self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
-                except Exception as e:
+                except ClientError as e:
+                    # If it's a 404 then its good
+                    if e.response["Error"]["Code"] == "404":
+                        continue
+                    # Otherwise, it's an error
                     self.logger.error(e)
-                    self.logger.error(f"Failed to delete file: {file}")
                     return 1
         return 0
 
