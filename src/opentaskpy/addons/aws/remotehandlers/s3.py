@@ -97,6 +97,16 @@ class S3Transfer(RemoteTransferHandler):
                     "Quiet": True,
                 },
             )
+
+            # Verify the files have been deleted
+            for file in files:
+                try:
+                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
+                except Exception as e:
+                    self.logger.error(e)
+                    self.logger.error(f"Failed to delete file: {file}")
+                    return 1
+
         # Copy the files to the new location, and then delete the originals
         if (
             self.spec["postCopyAction"]["action"] == "move"
@@ -114,6 +124,8 @@ class S3Transfer(RemoteTransferHandler):
                         new_file,
                     )
 
+                self.logger.info(f'"Moving" file from {file} to {new_file}')
+
                 self.s3_client.copy_object(
                     Bucket=self.spec["bucket"],
                     CopySource={
@@ -122,6 +134,16 @@ class S3Transfer(RemoteTransferHandler):
                     },
                     Key=new_file,
                 )
+
+                # Check that the copy worked
+                try:
+                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=new_file)
+                except Exception as e:
+                    # Print the exception message
+                    self.logger.error(e)
+                    self.logger.error(f"Failed to copy file: {file}")
+                    return 1
+
                 self.s3_client.delete_objects(
                     Bucket=self.spec["bucket"],
                     Delete={
@@ -129,6 +151,14 @@ class S3Transfer(RemoteTransferHandler):
                         "Quiet": True,
                     },
                 )
+
+                # Check that the delete worked
+                try:
+                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
+                except Exception as e:
+                    self.logger.error(e)
+                    self.logger.error(f"Failed to delete file: {file}")
+                    return 1
         return 0
 
     def list_files(

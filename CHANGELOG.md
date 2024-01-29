@@ -5,6 +5,7 @@
 - Bump version of opentaskpy required
 - Alter logging for found files to only print ones that match regex
 - Fixes tests that correctly started failing after upgrading opentaskpy version
+- Additional checking to PCAs to validate that it has actually happened
 
 ## v24.4.1
 
