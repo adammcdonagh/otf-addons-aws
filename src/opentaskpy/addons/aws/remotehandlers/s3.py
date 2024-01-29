@@ -91,7 +91,7 @@ class S3Transfer(RemoteTransferHandler):
         # Determine the action to take
         # Delete the files
         if self.spec["postCopyAction"]["action"] == "delete":
-            self.s3_client.delete_objects(
+            response = self.s3_client.delete_objects(
                 Bucket=self.spec["bucket"],
                 Delete={
                     "Objects": [{"Key": file} for file in files],
@@ -99,10 +99,20 @@ class S3Transfer(RemoteTransferHandler):
                 },
             )
 
+            # Check response for errors
+            if response.get("Errors"):
+                self.logger.error(response)
+                return 1
+
             # Verify the files have been deleted
             for file in files:
                 try:
-                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
+                    response = self.s3_client.head_object(
+                        Bucket=self.spec["bucket"], Key=file
+                    )
+                    self.logger.error(response)
+                    self.logger.error(f"Failed to delete file: {file}")
+                    return 1
                 except ClientError as e:
                     # If it's a 404 then its good
                     if e.response["Error"]["Code"] == "404":
@@ -148,17 +158,26 @@ class S3Transfer(RemoteTransferHandler):
                     self.logger.error(f"Failed to copy file: {file}")
                     return 1
 
-                self.s3_client.delete_objects(
+                response = self.s3_client.delete_objects(
                     Bucket=self.spec["bucket"],
                     Delete={
                         "Objects": [{"Key": file}],
                         "Quiet": True,
                     },
                 )
+                # Check response for errors
+                if response.get("Errors"):
+                    self.logger.error(response)
+                    return 1
 
                 # Check that the delete worked
                 try:
-                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=file)
+                    response = self.s3_client.head_object(
+                        Bucket=self.spec["bucket"], Key=file
+                    )
+                    self.logger.error(response)
+                    self.logger.error(f"Failed to delete file: {file}")
+                    return 1
                 except ClientError as e:
                     # If it's a 404 then its good
                     if e.response["Error"]["Code"] == "404":
@@ -192,7 +211,7 @@ class S3Transfer(RemoteTransferHandler):
 
         remote_files = {}
 
-        try:
+        try:  # pylint: disable=too-many-nested-blocks
             while True:
                 response = self.s3_client.list_objects_v2(**kwargs)
 
@@ -200,9 +219,22 @@ class S3Transfer(RemoteTransferHandler):
                     for object_ in response["Contents"]:
                         key = object_["Key"]
                         # Get the filename from the key
-                        filename = key.split("/")[-1]  #
+                        filename = key.split("/")[-1]
 
                         if file_pattern and not re.match(file_pattern, filename):
+                            continue
+
+                        # Also check the directory
+                        if directory:
+                            # Get the directory from the key (using basename)
+                            file_directory = os.path.dirname(key)
+                            if directory and file_directory != directory:
+                                continue
+
+                        if key.startswith("/"):
+                            # Make sure that there is no directory in the key
+                            # otherwise skip it too as we dont want anything in a subdir
+                            # (as directory is not set)
                             continue
 
                         self.logger.debug(f"Found file: {filename}")

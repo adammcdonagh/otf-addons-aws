@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.5.1
+
+- Ensure that S3 listing only matches the file we want, and not ones in lower directory trees
+
 ## v24.5.0
 
 - Bump version of opentaskpy required

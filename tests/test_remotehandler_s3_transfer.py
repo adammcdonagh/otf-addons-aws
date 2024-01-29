@@ -11,6 +11,7 @@ from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
 
 from opentaskpy import exceptions
+from opentaskpy.addons.aws.remotehandlers.s3 import S3Transfer
 from tests.fixtures.localstack import *  # noqa: F403, F405
 
 os.environ["OTF_NO_LOG"] = "0"
@@ -602,6 +603,38 @@ def test_s3_to_s3_copy_2(setup_bucket, s3_client, tmp_path):
     # Ensure that there are no other files in the dest
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
+
+
+def test_s3_file_matching(setup_bucket, s3_client, tmp_path):
+    # Ensure the source bucket is empty first
+    s3_client.delete_object(Bucket=BUCKET_NAME, Key="src/*")
+
+    # Create 10x files, but only one that matches the regex for the transfer exactly.
+    # Create a copy of each file in another subdir too, and make sure it doesn't match that path too
+    for i in range(10):
+        fs.create_files([{f"{tmp_path}/regex-test-{i}.txt": {"content": "test1234"}}])
+        create_s3_file(
+            s3_client, f"{tmp_path}/regex-test-{i}.txt", f"src/regex-test-{i}.txt"
+        )
+        create_s3_file(
+            s3_client,
+            f"{tmp_path}/regex-test-{i}.txt",
+            f"src/archive/regex-test-{i}.txt",
+        )
+
+    # Create a new S3 remotehandler object
+    s3_remote_handler = S3Transfer(s3_to_s3_copy_2_task_definition["source"])
+
+    # Check that only 1 file is matched
+    assert (
+        len(
+            s3_remote_handler.list_files(
+                directory=s3_remote_handler.spec["directory"],
+                file_pattern=s3_remote_handler.spec["fileRegex"],
+            )
+        )
+        == 1
+    )
 
 
 def test_s3_to_s3_proxy(setup_bucket, s3_client, tmp_path):
