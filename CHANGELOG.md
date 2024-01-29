@@ -1,5 +1,11 @@
 # Changelog
 
+## v24.5.0
+
+- Bump version of opentaskpy required
+- Alter logging for found files to only print ones that match regex
+- Fixes tests that correctly started failing after upgrading opentaskpy version
+
 ## v24.4.1
 
 - Change version numbering format

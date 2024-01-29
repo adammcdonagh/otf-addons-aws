@@ -17,7 +17,7 @@ classifiers = [
 keywords = ["automation", "task", "framework", "aws", "s3", "ssm", "otf"]
 dependencies = [
   "boto3 >= 1.26",
-  "opentaskpy >= 0.15.0",
+  "opentaskpy >= v24.5.0",
 ]
 description = "Addons for opentaskpy, giving it the ability to push/pull via AWS S3, and pull variables from AWS SSM Parameter Store."
 readme = "README.md"

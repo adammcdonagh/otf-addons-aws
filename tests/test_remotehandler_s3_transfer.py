@@ -135,6 +135,27 @@ s3_to_s3_copy_task_definition = {
     ],
 }
 
+s3_to_s3_copy_2_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "regex-test-5\\.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
 s3_to_s3_proxy_task_definition = {
     "type": "transfer",
     "source": {
@@ -188,7 +209,7 @@ s3_to_s3_pca_delete_task_definition = {
     "source": {
         "bucket": BUCKET_NAME,
         "directory": "src",
-        "fileRegex": "file-pca\\.txt",
+        "fileRegex": "file-pca-.*\\.txt",
         "postCopyAction": {
             "action": "delete",
         },
@@ -213,7 +234,7 @@ s3_to_s3_pca_move_task_definition = {
     "source": {
         "bucket": BUCKET_NAME,
         "directory": "src",
-        "fileRegex": "file-pca\\.txt",
+        "fileRegex": "pca-move\\.txt",
         "postCopyAction": {
             "action": "move",
             "destination": "src/archive/",
@@ -555,6 +576,34 @@ def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
+def test_s3_to_s3_copy_2(setup_bucket, s3_client, tmp_path):
+    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_2_task_definition)
+
+    # Ensure the source bucket is empty first, and the dest too
+    s3_client.delete_object(Bucket=BUCKET_NAME, Key="src/*")
+    s3_client.delete_object(Bucket=BUCKET_NAME_2, Key="dest/*")
+
+    # Create 10x files, but only one that matches the regex for the transfer
+    for i in range(10):
+        fs.create_files([{f"{tmp_path}/regex-test-{i}.txt": {"content": "test1234"}}])
+        create_s3_file(
+            s3_client, f"{tmp_path}/regex-test-{i}.txt", f"src/regex-test-{i}.txt"
+        )
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    s3_response = s3_client.head_object(
+        Bucket=BUCKET_NAME_2,
+        Key="dest/regex-test-5.txt",
+    )
+    assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Ensure that there are no other files in the dest
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    assert len(objects["Contents"]) == 1
+
+
 def test_s3_to_s3_proxy(setup_bucket, s3_client, tmp_path):
     transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_proxy_task_definition)
 
@@ -695,15 +744,19 @@ def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
 
     # Write a test file locally
 
-    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", f"src/{datestamp}.txt")
+    fs.create_files([{f"{tmp_path}/file-pca-{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(
+        s3_client,
+        f"{tmp_path}/file-pca-{datestamp}.txt",
+        f"src/file-pca-{datestamp}.txt",
+    )
 
     assert transfer_obj.run()
 
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     # check that the correct_file.txt is in the bucket, and not the other 2
     assert len(objects["Contents"]) == 1
-    assert objects["Contents"][0]["Key"] == f"dest/{datestamp}.txt"
+    assert objects["Contents"][0]["Key"] == f"dest/file-pca-{datestamp}.txt"
 
     # Check that the file is not in the source bucket
     objects = s3_client.list_objects(Bucket=BUCKET_NAME)

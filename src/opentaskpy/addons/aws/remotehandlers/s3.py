@@ -164,9 +164,11 @@ class S3Transfer(RemoteTransferHandler):
                         key = object_["Key"]
                         # Get the filename from the key
                         filename = key.split("/")[-1]  #
-                        self.logger.debug(f"Found file: {filename}")
+
                         if file_pattern and not re.match(file_pattern, filename):
                             continue
+
+                        self.logger.debug(f"Found file: {filename}")
 
                         # Get the size and modified time
                         file_attr = self.s3_client.head_object(
