@@ -135,6 +135,28 @@ s3_to_s3_copy_task_definition = {
     ],
 }
 
+s3_to_s3_proxy_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": ".*\\.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "transferType": "proxy",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
 
 s3_to_s3_copy_with_fin_task_definition = {
     "type": "transfer",
@@ -514,6 +536,27 @@ def test_s3_file_conditions_size(setup_bucket, tmp_path, s3_client):
 
 def test_s3_to_s3_copy(setup_bucket, s3_client, tmp_path):
     transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_copy_task_definition)
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    s3_response = s3_client.head_object(
+        Bucket=BUCKET_NAME_2,
+        Key="dest/test.txt",
+    )
+    assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+def test_s3_to_s3_proxy(setup_bucket, s3_client, tmp_path):
+    transfer_obj = transfer.Transfer(None, "s3-to-s3", s3_to_s3_proxy_task_definition)
 
     # Create a file to watch for with the current date
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
