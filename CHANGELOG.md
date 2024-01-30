@@ -1,5 +1,16 @@
 # Changelog
 
+## v24.5.1
+
+- Ensure that S3 listing only matches the file we want, and not ones in lower directory trees
+
+## v24.5.0
+
+- Bump version of opentaskpy required
+- Alter logging for found files to only print ones that match regex
+- Fixes tests that correctly started failing after upgrading opentaskpy version
+- Additional checking to PCAs to validate that it has actually happened
+
 ## v24.4.1
 
 - Change version numbering format
