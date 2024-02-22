@@ -4,6 +4,8 @@ Uses boto3 to pull out a parameter from AWS Parameter Store
 This uses AWS authentication, either from the IAM role of the host,
 by using environment variables, or variables in variables.json file
 """
+
+import json
 import os
 
 import boto3
@@ -83,5 +85,13 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
         raise e
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
+
+    # Escape any escape characters so they can be stored in JSON as a string
+    if result:
+        # Escape any newline characters
+        result = result.replace("\n", "\\n")
+        result = json.dumps(result)
+        # Remove the leading and trailing quotes
+        result = result[1:-1]
 
     return result

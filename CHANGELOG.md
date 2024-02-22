@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.8.0
+
+- Handle paramstore responses with newlines better
+
 ## v24.5.1
 
 - Ensure that S3 listing only matches the file we want, and not ones in lower directory trees
