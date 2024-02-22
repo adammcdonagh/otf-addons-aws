@@ -79,7 +79,7 @@ def test_config_loader_using_ssm_plugin(ssm_client, tmpdir):
         ]
     )
     # Test with a multi line string to make sure that it doesn't break the parser
-    expected_result = "config_loader_test_1234\nanother_line"
+    expected_result = """config_loader_test_1234\\nanother_line"""
 
     # Insert the param into paramstore
     ssm_client.put_parameter(
