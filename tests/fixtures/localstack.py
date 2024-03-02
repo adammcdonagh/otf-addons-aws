@@ -31,7 +31,6 @@ def root_dir_tests() -> str:
 def docker_compose_files(root_dir, root_dir_tests) -> list[str]:
     """Get the docker-compose.yml absolute path."""
     return [
-        f"{root_dir}/docker-compose.yml",
         f"{root_dir_tests}/docker-compose.yml",
     ]
 

@@ -1,11 +1,13 @@
 """AWS Fargate Task remote handler."""
 
 import os
+from datetime import datetime
 from time import sleep, time
 
 import boto3
 import botocore.exceptions
 import opentaskpy.otflogging
+from dateutil.tz import tzlocal
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
 from .creds import set_aws_creds
@@ -30,6 +32,10 @@ class FargateTaskExecution(RemoteExecutionHandler):
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
+        self.aws_access_key_id: str | None = None
+        self.aws_secret_access_key: str | None = None
+        self.region_name: str | None = None
+        self.temporary_creds_expiry: datetime | None = None
 
         super().__init__(spec)
 
@@ -41,20 +47,45 @@ class FargateTaskExecution(RemoteExecutionHandler):
             "aws_secret_access_key": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
+
+        self.session = boto3.session.Session(**kwargs)
+
+        self.get_ecs_client()
+
+    def check_credential_expiry(self) -> None:
+        """Check the expiry of the temporary credentials."""
+        if self.temporary_creds_expiry:
+            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
+                self.get_s3_client()
+
+    def get_ecs_client(self) -> None:
+        """Get the temporary credentials, or just return the client."""
         # If there's an override for endpoint_url in the environment, then use that
         kwargs2 = {}
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.session = boto3.session.Session(**kwargs)
+        self.sts_client = self.session.client("sts", **kwargs2)
+
+        if self.assume_role_arn:
+            assumed_role_object = self.sts_client.assume_role(
+                RoleArn=self.assume_role_arn,
+                RoleSessionName=f"OTF{time()}",
+            )
+            temporary_creds = assumed_role_object["Credentials"]
+            # Set the credentials
+            self.aws_access_key_id = temporary_creds["AccessKeyId"]
+            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
+
+            # Set these in the session
+            self.session = boto3.session.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                aws_session_token=temporary_creds["SessionToken"],
+                region_name=self.region_name,
+            )
 
         self.ecs_client = self.session.client("ecs", **kwargs2)
-
-        # If we have an assume role, then we need to assume it
-        if self.assume_role_arn:
-            self.ecs_client.assume_role(
-                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
-            )
 
     def kill(self) -> None:
         """Kill the fargate task function.
@@ -126,6 +157,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
             # We'll check the status of the task every 5 seconds
             # If the task has a timeout set, then we'll use that as the timeout
             while True:
+                self.check_credential_expiry()
                 # Get the task status
                 self.logger.info("Checking status of task")
                 task_status = self.ecs_client.describe_tasks(
