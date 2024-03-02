@@ -63,6 +63,7 @@ class S3Transfer(RemoteTransferHandler):
         """Check the expiry of the temporary credentials."""
         if self.temporary_creds_expiry:
             if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
+                self.logger.info("Renewing temporary credentials")
                 self.get_s3_client()
 
     def get_s3_client(self) -> None:
@@ -75,6 +76,7 @@ class S3Transfer(RemoteTransferHandler):
         self.sts_client = self.session.client("sts", **kwargs2)
 
         if self.assume_role_arn:
+            self.logger.info(f"Assuming role: {self.assume_role_arn}")
             assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn,
                 RoleSessionName=f"OTF{time()}",
@@ -114,6 +116,7 @@ class S3Transfer(RemoteTransferHandler):
         # Determine the action to take
         # Delete the files
         if self.spec["postCopyAction"]["action"] == "delete":
+            self.logger.info(f"Deleting files: {files}")
             response = self.s3_client.delete_objects(
                 Bucket=self.spec["bucket"],
                 Delete={
@@ -234,6 +237,10 @@ class S3Transfer(RemoteTransferHandler):
 
         remote_files = {}
 
+        self.logger.info(
+            f"Listing files in {self.spec['bucket']} matching {file_pattern}{' in' + (directory or '')}"
+        )
+
         try:  # pylint: disable=too-many-nested-blocks
             while True:
                 # Check that our creds are valid
@@ -262,7 +269,7 @@ class S3Transfer(RemoteTransferHandler):
                             # (as directory is not set)
                             continue
 
-                        self.logger.debug(f"Found file: {filename}")
+                        self.logger.info(f"Found file: {filename}")
 
                         # Get the size and modified time
                         file_attr = self.s3_client.head_object(
@@ -320,7 +327,7 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
-            self.logger.debug(
+            self.logger.info(
                 f"Transferring file: {file} to s3://{self.spec['bucket']}/{file_name}"
             )
             try:
@@ -359,7 +366,7 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
-            self.logger.debug(f"Transferring file: {file}")
+            self.logger.info(f"Downloading file: {file}")
             try:
                 self.s3_client.download_file(
                     self.spec["bucket"],
@@ -401,7 +408,9 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
-            self.logger.debug(f"Transferring file: {file}")
+            self.logger.info(
+                f"Transferring file: {file} from {self.spec['bucket']} to {dest_remote_handler.spec['bucket']}"
+            )
             try:
                 self.s3_client.copy(
                     {
@@ -430,7 +439,7 @@ class S3Transfer(RemoteTransferHandler):
         result = 0
 
         object_key = self.spec["flags"]["fullPath"]
-        self.logger.debug(f"Creating flag file: {object_key}")
+        self.logger.info(f"Creating flag file: {object_key}")
         kwargs = {
             "Bucket": self.spec["bucket"],
             "Key": object_key,
