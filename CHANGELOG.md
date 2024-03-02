@@ -1,5 +1,11 @@
 # Changelog
 
+## v24.9.0
+
+- Fix exceptions thrown my S3 commands etc not causing transfer to fail
+- Update lambda and ECS invocations to handle assume role correctly
+- Update all AssumeRole usage to also check the expiry of the temporary token and renew them if necessary
+
 ## v24.8.0
 
 - Handle paramstore responses with newlines better
