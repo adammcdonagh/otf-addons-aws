@@ -3,6 +3,7 @@
 import glob
 import os
 import re
+from datetime import datetime
 from time import time
 
 import boto3
@@ -36,6 +37,7 @@ class S3Transfer(RemoteTransferHandler):
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
+        self.temporary_creds_expiry: datetime | None = None
 
         super().__init__(spec)
 
@@ -54,16 +56,33 @@ class S3Transfer(RemoteTransferHandler):
 
         self.session = boto3.session.Session(**kwargs)
 
-        if self.assume_role_arn:
-            self.sts_client = self.session.client("sts", **kwargs2)
+        self.get_s3_client()
 
+    def check_credential_expiry(self) -> None:
+        """Check the expiry of the temporary credentials."""
+        if self.temporary_creds_expiry:
+            if self.temporary_creds_expiry < datetime.now():
+                self.get_s3_client()
+
+    def get_s3_client(self) -> None:
+        """Get the temporary credentials, or just return the client."""
+        # If there's an override for endpoint_url in the environment, then use that
+        kwargs2 = {}
+        if os.environ.get("AWS_ENDPOINT_URL"):
+            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+
+        self.sts_client = self.session.client("sts", **kwargs2)
+
+        if self.assume_role_arn:
             assumed_role_object = self.sts_client.assume_role(
-                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
+                RoleArn=self.assume_role_arn,
+                RoleSessionName=f"OTF{time()}",
             )
             temporary_creds = assumed_role_object["Credentials"]
             # Set the credentials
             self.aws_access_key_id = temporary_creds["AccessKeyId"]
             self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
+            self.temporary_creds_expiry = temporary_creds["Expiration"]
 
             # Set these in the session
             self.session = boto3.session.Session(
@@ -88,6 +107,9 @@ class S3Transfer(RemoteTransferHandler):
         Returns:
             int: 0 if successful, 1 if not.
         """
+        # Check that our creds are valid
+        self.check_credential_expiry()
+
         # Determine the action to take
         # Delete the files
         if self.spec["postCopyAction"]["action"] == "delete":
@@ -118,7 +140,7 @@ class S3Transfer(RemoteTransferHandler):
                     if e.response["Error"]["Code"] == "404":
                         continue
                     # Otherwise, it's an error
-                    self.logger.error(e)
+                    self.logger.exception(e)
                     return 1
 
         # Copy the files to the new location, and then delete the originals
@@ -183,7 +205,7 @@ class S3Transfer(RemoteTransferHandler):
                     if e.response["Error"]["Code"] == "404":
                         continue
                     # Otherwise, it's an error
-                    self.logger.error(e)
+                    self.logger.exception(e)
                     return 1
         return 0
 
@@ -213,6 +235,8 @@ class S3Transfer(RemoteTransferHandler):
 
         try:  # pylint: disable=too-many-nested-blocks
             while True:
+                # Check that our creds are valid
+                self.check_credential_expiry()
                 response = self.s3_client.list_objects_v2(**kwargs)
 
                 if response["KeyCount"]:
@@ -259,7 +283,8 @@ class S3Transfer(RemoteTransferHandler):
                 break
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error(f"Error listing files: {self.spec['bucket']}")
-            self.logger.error(e)
+            self.logger.exception(e)
+            raise e
 
         return remote_files
 
@@ -282,6 +307,9 @@ class S3Transfer(RemoteTransferHandler):
         Returns:
             int: 0 if successful, 1 if not.
         """
+        # Check that our creds are valid
+        self.check_credential_expiry()
+
         result = 0
         files = glob.glob(f"{local_staging_directory}/*")
         kwargs = {}
@@ -303,7 +331,7 @@ class S3Transfer(RemoteTransferHandler):
                 )
             except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to transfer file: {file}")
-                self.logger.error(e)
+                self.logger.exception(e)
                 result = 1
 
         return result
@@ -323,6 +351,9 @@ class S3Transfer(RemoteTransferHandler):
         Returns:
             int: 0 if successful, 1 if not.
         """
+        # Check that our creds are valid
+        self.check_credential_expiry()
+
         result = 0
         for file in files:
             # Strip the directory from the file
@@ -336,7 +367,7 @@ class S3Transfer(RemoteTransferHandler):
                 )
             except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to transfer file: {file}")
-                self.logger.error(e)
+                self.logger.exception(e)
                 result = 1
 
         return result
@@ -359,6 +390,9 @@ class S3Transfer(RemoteTransferHandler):
             int: 0 if successful, if not, then 1
             command.
         """
+        # Check that our creds are valid
+        self.check_credential_expiry()
+
         # Check the remote handler, if it's another S3Transfer, then it's simple
         # to do an S3 copy via boto
 
@@ -378,7 +412,7 @@ class S3Transfer(RemoteTransferHandler):
                 )
             except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Error transferring file: {file}")
-                self.logger.error(e)
+                self.logger.exception(e)
                 result = 1
 
         return result
@@ -389,6 +423,9 @@ class S3Transfer(RemoteTransferHandler):
         Returns:
             int: 0 if successful, 1 if not.
         """
+        # Check that our creds are valid
+        self.check_credential_expiry()
+
         result = 0
 
         object_key = self.spec["flags"]["fullPath"]
@@ -404,7 +441,7 @@ class S3Transfer(RemoteTransferHandler):
             self.s3_client.put_object(**kwargs)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error(f"Error creating flag file: {object_key}")
-            self.logger.error(e)
+            self.logger.exception(e)
             result = 1
 
         return result
@@ -436,6 +473,10 @@ class S3Execution(RemoteExecutionHandler):
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
+        self.aws_access_key_id: str | None = None
+        self.aws_secret_access_key: str | None = None
+        self.region_name: str | None = None
+        self.temporary_creds_expiry: datetime | None = None
 
         super().__init__(spec)
 
@@ -447,12 +488,43 @@ class S3Execution(RemoteExecutionHandler):
             "aws_secret_access_key": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
+
+        self.session = boto3.session.Session(**kwargs)
+
+        self.get_s3_client()
+
+    def check_credential_expiry(self) -> None:
+        """Check the expiry of the temporary credentials."""
+        if self.temporary_creds_expiry:
+            if self.temporary_creds_expiry < datetime.now():
+                self.get_s3_client()
+
+    def get_s3_client(self) -> None:
+        """Get the temporary credentials, or just return the client."""
         # If there's an override for endpoint_url in the environment, then use that
         kwargs2 = {}
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.session = boto3.session.Session(**kwargs)
+        if self.assume_role_arn:
+            self.sts_client = self.session.client("sts", **kwargs2)
+            assumed_role_object = self.sts_client.assume_role(
+                RoleArn=self.assume_role_arn,
+                RoleSessionName=f"OTF{time()}",
+            )
+            temporary_creds = assumed_role_object["Credentials"]
+            # Set the credentials
+            self.aws_access_key_id = temporary_creds["AccessKeyId"]
+            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
+            self.temporary_creds_expiry = temporary_creds["Expiration"]
+
+            # Set these in the session
+            self.session = boto3.session.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                aws_session_token=temporary_creds["SessionToken"],
+                region_name=self.region_name,
+            )
 
         self.s3_client = self.session.client("s3", **kwargs2)
 
@@ -483,7 +555,7 @@ class S3Execution(RemoteExecutionHandler):
             self.s3_client.put_object(**kwargs)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error(f"Failed to create flag file: {object_key}")
-            self.logger.error(e)
+            self.logger.exception(e)
             result = False
 
         return result

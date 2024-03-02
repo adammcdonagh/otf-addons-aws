@@ -36,6 +36,10 @@ class LambdaExecution(RemoteExecutionHandler):
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
+        self.aws_access_key_id: str | None = None
+        self.aws_secret_access_key: str | None = None
+        self.region_name: str | None = None
+
         super().__init__(spec)
 
         if "functionArn" not in self.spec:
@@ -61,13 +65,27 @@ class LambdaExecution(RemoteExecutionHandler):
 
         self.session = boto3.session.Session(**kwargs)
 
-        self.lambda_client = self.session.client("lambda", **kwargs2)
+        self.sts_client = self.session.client("sts", **kwargs2)
 
-        # If we have an assume role, then we need to assume it
         if self.assume_role_arn:
-            self.lambda_client.assume_role(
-                RoleArn=self.assume_role_arn, RoleSessionName=f"OTF{time()}"
+            assumed_role_object = self.sts_client.assume_role(
+                RoleArn=self.assume_role_arn,
+                RoleSessionName=f"OTF{time()}",
             )
+            temporary_creds = assumed_role_object["Credentials"]
+            # Set the credentials
+            self.aws_access_key_id = temporary_creds["AccessKeyId"]
+            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
+
+            # Set these in the session
+            self.session = boto3.session.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                aws_session_token=temporary_creds["SessionToken"],
+                region_name=self.region_name,
+            )
+
+        self.lambda_client = self.session.client("lambda", **kwargs2)
 
     def kill(self) -> None:
         """Kill the lambda function.
@@ -128,7 +146,12 @@ class LambdaExecution(RemoteExecutionHandler):
                 # base64 decode the result
                 log_result = base64.b64decode(invoke_response["LogResult"]).decode()
 
-                self.logger.debug(f"Lambda function response: {log_result}")
+                self.logger.debug(f"Lambda function log: {log_result}")
+
+            # Also see if there's any actual result body
+            if "Payload" in invoke_response:
+                result_payload = invoke_response["Payload"].read()
+                self.logger.debug(f"Lambda function payload: {result_payload['body']}")
 
         except botocore.exceptions.ClientError as e:
             self.logger.error(f"Failed to run lambda function: {function_arn}")
