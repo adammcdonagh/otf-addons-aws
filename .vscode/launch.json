@@ -6,12 +6,12 @@
   "configurations": [
     {
       "name": "Python: Transfer - S3 to SSH Basic",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       // "preLaunchTask": "Build Test containers",
       "program": "../open-task-framework/src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": ["-t", "s3-to-ssh", "-v", "3", "-c", "test/cfg"],
+      "args": ["-t", "s3-to-s3", "-v", "3", "-c", "test/cfg"],
       "env": {
         "AWS_ACCESS_KEY_ID": "test",
         "AWS_SECRET_ACCESS_KEY": "test",
@@ -22,7 +22,7 @@
     },
     {
       "name": "Python: Lambda Timeout",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       // "preLaunchTask": "Build Test containers",
       "program": "../open-task-framework/src/opentaskpy/cli/task_run.py",

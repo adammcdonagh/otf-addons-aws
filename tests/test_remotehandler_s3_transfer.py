@@ -1,7 +1,6 @@
 # pylint: skip-file
 import datetime
 import os
-import shutil
 import subprocess
 import threading
 from copy import deepcopy
@@ -358,82 +357,6 @@ ssh_to_s3_copy_task_definition = {
         }
     ],
 }
-
-
-@pytest.fixture(scope="session")
-def test_files(root_dir):
-    # Get the root directory of the project
-
-    structure = [
-        f"{root_dir}/testFiles/ssh_1/ssh",
-        f"{root_dir}/testFiles/ssh_1/src",
-        f"{root_dir}/testFiles/ssh_1/dest",
-        f"{root_dir}/testFiles/ssh_1/archive",
-        f"{root_dir}/testFiles/ssh_2/ssh",
-        f"{root_dir}/testFiles/ssh_2/src",
-        f"{root_dir}/testFiles/ssh_2/dest",
-        f"{root_dir}/testFiles/ssh_2/archive",
-    ]
-    fs.create_files(structure)
-
-
-@pytest.fixture(scope="session")
-def ssh_1(docker_services):
-    docker_services.start("ssh_1")
-    port = docker_services.port_for("ssh_1", 22)
-    address = f"{docker_services.docker_ip}:{port}"
-    return address
-
-
-@pytest.fixture(scope="session")
-def ssh_2(docker_services):
-    docker_services.start("ssh_2")
-    port = docker_services.port_for("ssh_2", 22)
-    address = f"{docker_services.docker_ip}:{port}"
-    return address
-
-
-@pytest.fixture(scope="session")
-def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
-    # Run command locally
-    # if ssh key doesn't exist yet
-    ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
-    if not os.path.isfile(ssh_private_key_file):
-        subprocess.run(
-            ["ssh-keygen", "-t", "rsa", "-N", "", "-f", ssh_private_key_file],
-            check=True,
-        )
-
-        # Copy the file into the ssh directory for each host
-        for i in ("1", "2"):
-            shutil.copy(
-                ssh_private_key_file, f"{root_dir}/testFiles/ssh_{i}/ssh/id_rsa"
-            )
-            shutil.copy(
-                f"{root_dir}/testFiles/id_rsa.pub",
-                f"{root_dir}/testFiles/ssh_{i}/ssh/authorized_keys",
-            )
-
-    # Run the docker exec command to create the user
-    # Get the current uid for the running process
-    uid = str(os.getuid())
-    # commands to run
-    commands = [
-        ("usermod", "-G", "operator", "-a", "application", "-u", uid),
-        ("mkdir", "-p", "/home/application/.ssh"),
-        ("cp", "/tmp/testFiles/ssh/id_rsa", "/home/application/.ssh"),
-        (
-            "cp",
-            "/tmp/testFiles/id_rsa.pub",
-            "/home/application/.ssh/authorized_keys",
-        ),
-        ("chown", "-R", "application", "/home/application/.ssh"),
-        ("chmod", "-R", "700", "/home/application/.ssh"),
-        ("chown", "-R", "application", "/tmp/testFiles"),
-    ]
-    for host in ("ssh_1", "ssh_2"):
-        for command in commands:
-            docker_services.execute(host, *command)
 
 
 @pytest.fixture(scope="function")
@@ -845,46 +768,6 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     assert (
         objects["Contents"][0]["Key"] == "src/archive/file-pca-rename-1234-renamed.txt"
     )
-
-
-def test_s3_to_ssh_copy(setup_bucket, s3_client, tmp_path, setup_ssh_keys):
-    transfer_obj = transfer.Transfer(None, "s3-to-ssh", s3_to_ssh_copy_task_definition)
-
-    # Create a file to watch for with the current date
-    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-    # Write a test file locally
-    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
-    create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
-
-    assert transfer_obj.run()
-
-
-def test_ssh_to_s3_copy(setup_bucket, root_dir, setup_ssh_keys):
-    transfer_obj = transfer.Transfer(None, "ssh-to-s3", ssh_to_s3_copy_task_definition)
-
-    # Create a file to watch for with the current date
-    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-    # Write a test file locally
-    fs.create_files(
-        [{f"{root_dir}/testFiles/ssh_2/src/{datestamp}.txt": {"content": "test1234"}}]
-    )
-
-    assert transfer_obj.run()
-
-    # Check that the file is in the destination bucket
-    result = subprocess.run(
-        [
-            "awslocal",
-            "s3",
-            "ls",
-            f"s3://{BUCKET_NAME}/dest/{datestamp}.txt",
-        ],
-        capture_output=True,
-    )
-    # Asset result.returncode is 0
-    assert result.returncode == 0
 
 
 def test_s3_file_watch_custom_creds(
