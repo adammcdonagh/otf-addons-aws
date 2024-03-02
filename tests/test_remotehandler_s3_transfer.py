@@ -6,6 +6,7 @@ import subprocess
 import threading
 from copy import deepcopy
 
+import botocore
 import pytest
 from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
@@ -423,7 +424,7 @@ def setup_ssh_keys(docker_services, root_dir, test_files, ssh_1, ssh_2):
         ("cp", "/tmp/testFiles/ssh/id_rsa", "/home/application/.ssh"),
         (
             "cp",
-            "/tmp/testFiles/ssh/authorized_keys",
+            "/tmp/testFiles/id_rsa.pub",
             "/home/application/.ssh/authorized_keys",
         ),
         ("chown", "-R", "application", "/home/application/.ssh"),
@@ -667,7 +668,7 @@ def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
         None, "s3-to-s3-invalid-source", s3_to_s3_copy_task_definition_copy
     )
 
-    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+    with pytest.raises(botocore.errorfactory.ClientError):
         transfer_obj.run()
 
 
