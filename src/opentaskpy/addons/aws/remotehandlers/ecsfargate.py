@@ -7,6 +7,7 @@ from time import sleep, time
 import boto3
 import botocore.exceptions
 import opentaskpy.otflogging
+from dateutil.tz import tzlocal
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
 from .creds import set_aws_creds
@@ -54,7 +55,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
     def check_credential_expiry(self) -> None:
         """Check the expiry of the temporary credentials."""
         if self.temporary_creds_expiry:
-            if self.temporary_creds_expiry < datetime.now():
+            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
                 self.get_s3_client()
 
     def get_ecs_client(self) -> None:

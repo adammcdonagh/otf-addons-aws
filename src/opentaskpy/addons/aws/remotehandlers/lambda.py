@@ -151,7 +151,7 @@ class LambdaExecution(RemoteExecutionHandler):
             # Also see if there's any actual result body
             if "Payload" in invoke_response:
                 result_payload = invoke_response["Payload"].read()
-                self.logger.debug(f"Lambda function payload: {result_payload['body']}")
+                self.logger.debug(f"Lambda function payload: {result_payload}")
 
         except botocore.exceptions.ClientError as e:
             self.logger.error(f"Failed to run lambda function: {function_arn}")

@@ -9,6 +9,7 @@ from time import time
 import boto3
 import opentaskpy.otflogging
 from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
 from opentaskpy.remotehandlers.remotehandler import (
     RemoteExecutionHandler,
     RemoteTransferHandler,
@@ -61,7 +62,7 @@ class S3Transfer(RemoteTransferHandler):
     def check_credential_expiry(self) -> None:
         """Check the expiry of the temporary credentials."""
         if self.temporary_creds_expiry:
-            if self.temporary_creds_expiry < datetime.now():
+            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
                 self.get_s3_client()
 
     def get_s3_client(self) -> None:
@@ -496,7 +497,7 @@ class S3Execution(RemoteExecutionHandler):
     def check_credential_expiry(self) -> None:
         """Check the expiry of the temporary credentials."""
         if self.temporary_creds_expiry:
-            if self.temporary_creds_expiry < datetime.now():
+            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
                 self.get_s3_client()
 
     def get_s3_client(self) -> None:
