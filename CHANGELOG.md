@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.9.1
+
+- Improve logging for S3 transfers so as to not need DEBUG set to see anything useful
+
 ## v24.9.0
 
 - Fix exceptions thrown my S3 commands etc not causing transfer to fail
