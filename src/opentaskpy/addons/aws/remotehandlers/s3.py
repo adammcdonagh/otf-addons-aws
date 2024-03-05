@@ -328,7 +328,7 @@ class S3Transfer(RemoteTransferHandler):
             # Strip the directory from the file
             file_name = file.split("/")[-1]
             self.logger.info(
-                f"Transferring file: {file} to s3://{self.spec['bucket']}/{file_name}"
+                f"Transferring file: {file} to s3://{self.spec['bucket']}/{self.spec['directory']}/{file_name}"
             )
             try:
                 self.s3_client.upload_file(
