@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.10.0
+
+- Fix logging for S3 not printing correct destination directory name
+
 ## v24.9.1
 
 - Improve logging for S3 transfers so as to not need DEBUG set to see anything useful
