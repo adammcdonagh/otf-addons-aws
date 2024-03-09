@@ -9,7 +9,6 @@ import opentaskpy.otflogging
 import pytest
 from opentaskpy.taskhandlers import execution
 
-from opentaskpy.addons.aws.remotehandlers.ecsfargate import FargateTaskExecution
 from tests.fixtures.localstack import *  # noqa: F403, F405, F401
 from tests.fixtures.moto import *  # noqa: F403, F405, F401
 
@@ -152,11 +151,12 @@ def test_run_fargate_task(credentials_aws_dev):
     create_ecs_cluster()
     create_fargate_task()
 
-    # Manually create a FargateTaskExecution object
-    fargate_task_execution = FargateTaskExecution(fargate_execution_task_definition)
+    fargate_object = execution.Execution(
+        None, "run-fargate-task", fargate_execution_task_definition
+    )
 
     # Execute the task
-    assert fargate_task_execution.execute()
+    assert fargate_object.run()
 
 
 def test_run_fargate_task_fail(credentials_aws_dev):
