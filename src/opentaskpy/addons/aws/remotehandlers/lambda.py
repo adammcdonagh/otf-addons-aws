@@ -33,7 +33,7 @@ class LambdaExecution(RemoteExecutionHandler):
         # This is really handled by the schema checks
 
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         self.aws_access_key_id: str | None = None
