@@ -33,7 +33,7 @@ class S3Transfer(RemoteTransferHandler):
             destination spec.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
@@ -238,7 +238,8 @@ class S3Transfer(RemoteTransferHandler):
         remote_files = {}
 
         self.logger.info(
-            f"Listing files in {self.spec['bucket']} matching {file_pattern}{' in' + (directory or '')}"
+            f"Listing files in {self.spec['bucket']} matching"
+            f" {file_pattern}{' in' + (directory or '')}"
         )
 
         try:  # pylint: disable=too-many-nested-blocks
@@ -328,7 +329,8 @@ class S3Transfer(RemoteTransferHandler):
             # Strip the directory from the file
             file_name = file.split("/")[-1]
             self.logger.info(
-                f"Transferring file: {file} to s3://{self.spec['bucket']}/{self.spec['directory']}/{file_name}"
+                f"Transferring file: {file} to"
+                f" s3://{self.spec['bucket']}/{self.spec['directory']}/{file_name}"
             )
             try:
                 self.s3_client.upload_file(
@@ -409,7 +411,8 @@ class S3Transfer(RemoteTransferHandler):
             # Strip the directory from the file
             file_name = file.split("/")[-1]
             self.logger.info(
-                f"Transferring file: {file} from {self.spec['bucket']} to {dest_remote_handler.spec['bucket']}"
+                f"Transferring file: {file} from {self.spec['bucket']} to"
+                f" {dest_remote_handler.spec['bucket']}"
             )
             try:
                 self.s3_client.copy(
@@ -481,7 +484,7 @@ class S3Execution(RemoteExecutionHandler):
             spec (dict): The spec for the execution.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None

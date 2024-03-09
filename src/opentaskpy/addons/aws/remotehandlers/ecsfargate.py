@@ -30,7 +30,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
             spec (dict): The spec for the execution.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
