@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.12.0
+
+- Fix temporary token not refreshing correctly
+
 ## v24.10.1
 
 - More logging updates to handle major logging change in `opentaskpy` v24.10.0

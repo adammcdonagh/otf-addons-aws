@@ -44,27 +44,31 @@ class S3Transfer(RemoteTransferHandler):
 
         set_aws_creds(self)
 
-        # Use boto3 to setup the required object for the transfer
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
-            "region_name": self.region_name,
-        }
-        # If there's an override for endpoint_url in the environment, then use that
-        kwargs2 = {}
-        if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
-
-        self.session = boto3.session.Session(**kwargs)
+        self.get_session()
 
         self.get_s3_client()
 
     def check_credential_expiry(self) -> None:
         """Check the expiry of the temporary credentials."""
         if self.temporary_creds_expiry:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
+            )
             if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
                 self.logger.info("Renewing temporary credentials")
+                self.get_session()
                 self.get_s3_client()
+
+    def get_session(self) -> None:
+        """Configures a session object to use for API calls."""
+        # Use boto3 to setup the required object for the transfer
+        kwargs = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.region_name,
+        }
+
+        self.session = boto3.session.Session(**kwargs)
 
     def get_s3_client(self) -> None:
         """Get the temporary credentials, or just return the client."""
@@ -80,6 +84,7 @@ class S3Transfer(RemoteTransferHandler):
             assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn,
                 RoleSessionName=f"OTF{time()}",
+                DurationSeconds=900,
             )
             temporary_creds = assumed_role_object["Credentials"]
             # Set the credentials
@@ -494,7 +499,22 @@ class S3Execution(RemoteExecutionHandler):
         super().__init__(spec)
 
         set_aws_creds(self)
+        self.get_session()
+        self.get_s3_client()
 
+    def check_credential_expiry(self) -> None:
+        """Check the expiry of the temporary credentials."""
+        if self.temporary_creds_expiry:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
+            )
+            if self.temporary_creds_expiry <= datetime.now(tz=tzlocal()):
+                self.logger.info("Renewing temporary credentials")
+                self.get_session()
+                self.get_s3_client()
+
+    def get_session(self) -> None:
+        """Configures a session object to use for API calls."""
         # Use boto3 to setup the required object
         kwargs = {
             "aws_access_key_id": self.aws_access_key_id,
@@ -504,14 +524,6 @@ class S3Execution(RemoteExecutionHandler):
 
         self.session = boto3.session.Session(**kwargs)
 
-        self.get_s3_client()
-
-    def check_credential_expiry(self) -> None:
-        """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
-            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
-                self.get_s3_client()
-
     def get_s3_client(self) -> None:
         """Get the temporary credentials, or just return the client."""
         # If there's an override for endpoint_url in the environment, then use that
@@ -520,6 +532,7 @@ class S3Execution(RemoteExecutionHandler):
             kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
         if self.assume_role_arn:
+            self.logger.info(f"Assuming role: {self.assume_role_arn}")
             self.sts_client = self.session.client("sts", **kwargs2)
             assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn,
