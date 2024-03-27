@@ -311,12 +311,15 @@ class S3Transfer(RemoteTransferHandler):
         """Not implemented for this handler."""
         raise NotImplementedError
 
-    def push_files_from_worker(self, local_staging_directory: str) -> int:
+    def push_files_from_worker(
+        self, local_staging_directory: str, file_list: dict | None = None
+    ) -> int:
         """Push files from the worker to the destination server.
 
         Args:
             local_staging_directory (str): The local staging directory to upload the
             files from.
+            file_list (dict, optional): The list of files to transfer. Defaults to None.
 
         Returns:
             int: 0 if successful, 1 if not.
