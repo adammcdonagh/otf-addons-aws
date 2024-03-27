@@ -582,6 +582,36 @@ def test_s3_to_s3_proxy(setup_bucket, s3_client, tmp_path):
     assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
+def test_local_to_s3_proxy(setup_bucket, s3_client, tmp_path):
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Write a test file locally
+    fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
+
+    # Override the definition to use local source instead
+    local_to_s3_task_definition_copy = deepcopy(s3_to_s3_proxy_task_definition)
+    local_to_s3_task_definition_copy["source"] = {
+        "directory": f"{tmp_path}",
+        "fileRegex": f"{datestamp}\\.txt",
+        "protocol": {"name": "local"},
+    }
+
+    transfer_obj = transfer.Transfer(
+        None, "local-to-s3", local_to_s3_task_definition_copy
+    )
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket
+    s3_response = s3_client.head_object(
+        Bucket=BUCKET_NAME_2,
+        Key=f"dest/{datestamp}.txt",
+    )
+    assert s3_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
 def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
     s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
 
