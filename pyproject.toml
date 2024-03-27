@@ -13,7 +13,7 @@ classifiers = [
     "Operating System :: POSIX",
 ]
 keywords = ["automation", "task", "framework", "aws", "s3", "ssm", "otf"]
-dependencies = ["boto3 >= 1.26", "opentaskpy >= v24.10.0"]
+dependencies = ["boto3 >= 1.26", "opentaskpy >= v24.13.1"]
 description = "Addons for opentaskpy, giving it the ability to push/pull via AWS S3, and pull variables from AWS SSM Parameter Store."
 readme = "README.md"
 requires-python = ">=3.11"
