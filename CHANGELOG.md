@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.14.1
+
+- Add test coverage for s3 file renames when using proxy transfer type
+
 ## v24.14.0
 
 - Add destination file rename to S3 transfers
