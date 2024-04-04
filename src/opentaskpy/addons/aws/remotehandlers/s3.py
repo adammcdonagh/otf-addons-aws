@@ -342,9 +342,7 @@ class S3Transfer(RemoteTransferHandler):
                 rename_sub = self.spec["rename"]["sub"]
 
                 file_name = re.sub(rename_regex, rename_sub, file_name)
-                self.logger.info(
-                    f"Renaming file to {file_name}"
-                )
+                self.logger.info(f"Renaming file to {file_name}")
             self.logger.info(
                 f"Transferring file: {file} to"
                 f" s3://{self.spec['bucket']}/{self.spec['directory']}/{file_name}"
@@ -433,9 +431,7 @@ class S3Transfer(RemoteTransferHandler):
                 rename_sub = dest_remote_handler.spec["rename"]["sub"]
 
                 file_name = re.sub(rename_regex, rename_sub, file_name)
-                self.logger.info(
-                    f"Renaming file to {file_name}"
-                )
+                self.logger.info(f"Renaming file to {file_name}")
             self.logger.info(
                 f"Transferring file: {file} from {self.spec['bucket']} to"
                 f" {dest_remote_handler.spec['bucket']}/{file_name}"
