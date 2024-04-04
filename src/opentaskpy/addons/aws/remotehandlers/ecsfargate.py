@@ -40,7 +40,23 @@ class FargateTaskExecution(RemoteExecutionHandler):
         super().__init__(spec)
 
         set_aws_creds(self)
+        self.get_session()
 
+        self.get_ecs_client()
+
+    def check_credential_expiry(self) -> None:
+        """Check the expiry of the temporary credentials."""
+        if self.temporary_creds_expiry:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
+            )
+            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
+                self.logger.info("Renewing temporary credentials")
+                self.get_session()
+                self.get_ecs_client()
+
+    def get_session(self) -> None:
+        """Configures a session object to use for API calls."""
         # Use boto3 to setup the required object
         kwargs = {
             "aws_access_key_id": self.aws_access_key_id,
@@ -49,14 +65,6 @@ class FargateTaskExecution(RemoteExecutionHandler):
         }
 
         self.session = boto3.session.Session(**kwargs)
-
-        self.get_ecs_client()
-
-    def check_credential_expiry(self) -> None:
-        """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
-            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
-                self.get_s3_client()
 
     def get_ecs_client(self) -> None:
         """Get the temporary credentials, or just return the client."""
@@ -68,6 +76,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
         self.sts_client = self.session.client("sts", **kwargs2)
 
         if self.assume_role_arn:
+            self.logger.info(f"Assuming role: {self.assume_role_arn}")
             assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn,
                 RoleSessionName=f"OTF{time()}",

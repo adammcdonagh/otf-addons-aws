@@ -1,5 +1,10 @@
 # Changelog
 
+## v24.13.0
+
+- Fix temporary token not refreshing correctly
+- Implement required breaking changes from `opentaskpy` v24.13.1
+
 ## v24.10.1
 
 - More logging updates to handle major logging change in `opentaskpy` v24.10.0

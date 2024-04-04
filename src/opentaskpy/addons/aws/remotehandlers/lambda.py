@@ -21,7 +21,7 @@ class LambdaExecution(RemoteExecutionHandler):
 
     def tidy(self) -> None:
         """Tidy up the lambda client."""
-        self.lambda_client.close()
+        self.lambda_client.close()  # type: ignore[has-type]
 
     def __init__(self, spec: dict):
         """Initialise the LambdaExecution handler.
@@ -47,12 +47,8 @@ class LambdaExecution(RemoteExecutionHandler):
 
         set_aws_creds(self)
 
-        # Use boto3 to setup the required object
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
-            "region_name": self.region_name,
-        }
+        self.get_session()
+
         # If there's an override for endpoint_url in the environment, then use that
         kwargs2 = {}
         if os.environ.get("AWS_ENDPOINT_URL"):
@@ -63,14 +59,14 @@ class LambdaExecution(RemoteExecutionHandler):
         # It still means that the timeout of a lambda function is always at least 60 seconds due to the way boto3's HTTP timeout works
         kwargs2["config"] = botocore.client.Config(retries={"max_attempts": 0})
 
-        self.session = boto3.session.Session(**kwargs)
-
-        self.sts_client = self.session.client("sts", **kwargs2)
+        self.sts_client = self.session.client("sts", **kwargs2)  # type: ignore[has-type]
 
         if self.assume_role_arn:
+            self.logger.info(f"Assuming role: {self.assume_role_arn}")
             assumed_role_object = self.sts_client.assume_role(
                 RoleArn=self.assume_role_arn,
                 RoleSessionName=f"OTF{time()}",
+                DurationSeconds=960,  # Lambda can't run for more than 15 mins
             )
             temporary_creds = assumed_role_object["Credentials"]
             # Set the credentials
@@ -86,6 +82,17 @@ class LambdaExecution(RemoteExecutionHandler):
             )
 
         self.lambda_client = self.session.client("lambda", **kwargs2)
+
+    def get_session(self) -> None:
+        """Configures a session object to use for API calls."""
+        # Use boto3 to setup the required object for the transfer
+        kwargs = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.region_name,
+        }
+
+        self.session = boto3.session.Session(**kwargs)
 
     def kill(self) -> None:
         """Kill the lambda function.
@@ -125,6 +132,15 @@ class LambdaExecution(RemoteExecutionHandler):
                 InvocationType=invocation_type,
                 LogType="Tail",
                 Payload=json.dumps(payload),
+            )
+
+            self.logger.debug(f"Got status code: {invoke_response['StatusCode']}")
+            # Print the response
+            self.logger.debug(f"Lambda function response: {invoke_response}")
+
+            # Print the response payload
+            self.logger.info(
+                f"Got the following response from Lambda invocation: {invoke_response['Payload'].read().decode('utf-8')}"
             )
 
             if (
