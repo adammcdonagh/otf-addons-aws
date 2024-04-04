@@ -19,6 +19,9 @@
     },
     "protocol": {
       "$ref": "s3_destination/protocol.json"
+    },
+    "rename": {
+      "$ref": "s3_destination/rename.json"
     }
   },
   "additionalProperties": false,

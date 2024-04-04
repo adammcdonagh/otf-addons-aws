@@ -336,6 +336,15 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
+            # Handle any rename that might be specified in the spec
+            if "rename" in self.spec:
+                rename_regex = self.spec["rename"]["pattern"]
+                rename_sub = self.spec["rename"]["sub"]
+
+                file_name = re.sub(rename_regex, rename_sub, file_name)
+                self.logger.info(
+                    f"Renaming file to {file_name}"
+                )
             self.logger.info(
                 f"Transferring file: {file} to"
                 f" s3://{self.spec['bucket']}/{self.spec['directory']}/{file_name}"
@@ -418,9 +427,18 @@ class S3Transfer(RemoteTransferHandler):
         for file in files:
             # Strip the directory from the file
             file_name = file.split("/")[-1]
+            # Handle any rename that might be specified in the spec
+            if "rename" in dest_remote_handler.spec:
+                rename_regex = dest_remote_handler.spec["rename"]["pattern"]
+                rename_sub = dest_remote_handler.spec["rename"]["sub"]
+
+                file_name = re.sub(rename_regex, rename_sub, file_name)
+                self.logger.info(
+                    f"Renaming file to {file_name}"
+                )
             self.logger.info(
                 f"Transferring file: {file} from {self.spec['bucket']} to"
-                f" {dest_remote_handler.spec['bucket']}"
+                f" {dest_remote_handler.spec['bucket']}/{file_name}"
             )
             try:
                 self.s3_client.copy(
