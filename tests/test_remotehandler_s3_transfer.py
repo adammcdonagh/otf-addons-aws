@@ -322,10 +322,7 @@ s3_to_s3_rename_task_definition = {
         {
             "bucket": BUCKET_NAME_2,
             "directory": "dest",
-            "rename" : {
-                "pattern": "abc",
-                "sub" : "def"
-            },
+            "rename": {"pattern": "abc", "sub": "def"},
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
             },
@@ -347,10 +344,7 @@ s3_to_s3_proxy_rename_task_definition = {
         {
             "bucket": BUCKET_NAME_2,
             "directory": "dest",
-            "rename" : {
-                "pattern": "abc",
-                "sub" : "def"
-            },
+            "rename": {"pattern": "abc", "sub": "def"},
             "transferType": "proxy",
             "protocol": {
                 "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
@@ -850,6 +844,7 @@ def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
         objects["Contents"][0]["Key"] == "src/archive/file-pca-rename-1234-renamed.txt"
     )
 
+
 def test_s3_to_s3_copy_rename(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-rename", s3_to_s3_rename_task_definition
@@ -870,13 +865,16 @@ def test_s3_to_s3_copy_rename(setup_bucket, tmp_path, s3_client):
     assert len(objects["Contents"]) == 1
     assert objects["Contents"][0]["Key"] == "dest/file-rename-def.txt"
 
+
 def test_s3_to_s3_proxy_rename(setup_bucket, s3_client, tmp_path):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-proxy-rename", s3_to_s3_proxy_rename_task_definition
     )
 
     # Write a test file locally
-    fs.create_files([{f"{tmp_path}/file-rename-proxy-abc.txt": {"content": "test1234"}}])
+    fs.create_files(
+        [{f"{tmp_path}/file-rename-proxy-abc.txt": {"content": "test1234"}}]
+    )
     create_s3_file(
         s3_client,
         f"{tmp_path}/file-rename-proxy-abc.txt",
@@ -889,6 +887,7 @@ def test_s3_to_s3_proxy_rename(setup_bucket, s3_client, tmp_path):
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1
     assert objects["Contents"][0]["Key"] == "dest/file-rename-proxy-def.txt"
+
 
 def test_s3_file_watch_custom_creds(
     setup_bucket,
