@@ -109,7 +109,7 @@ jobs:
       - name: Run ruff
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual ruff --all-files --show-diff-on-failure
+          pre-commit run ruff --all-files --show-diff-on-failure
 
   lint-black:
     name: black
@@ -144,7 +144,7 @@ jobs:
       - name: Run black checks
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual black --all-files --show-diff-on-failure
+          pre-commit run black --all-files --show-diff-on-failure
 
   pylint:
     name: Check pylint
