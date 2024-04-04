@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.14.2
+
+- `black` formatting fix
+
 ## v24.14.1
 
 - Add test coverage for s3 file renames when using proxy transfer type
