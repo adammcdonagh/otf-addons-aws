@@ -56,6 +56,7 @@ class S3Transfer(RemoteTransferHandler):
             )
             if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
                 self.logger.info("Renewing temporary credentials")
+                set_aws_creds(self)
                 self.get_session()
                 self.get_s3_client()
 
@@ -527,6 +528,7 @@ class S3Execution(RemoteExecutionHandler):
             )
             if self.temporary_creds_expiry <= datetime.now(tz=tzlocal()):
                 self.logger.info("Renewing temporary credentials")
+                set_aws_creds(self)
                 self.get_session()
                 self.get_s3_client()
 
