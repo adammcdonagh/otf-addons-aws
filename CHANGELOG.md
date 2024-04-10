@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.15.0
+
+Ensure aws access key/secret etc set from environment again before token refresh
+
 ## v24.14.2
 
 - `black` formatting fix
