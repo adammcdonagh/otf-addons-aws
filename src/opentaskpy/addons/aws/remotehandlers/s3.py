@@ -39,7 +39,8 @@ class S3Transfer(RemoteTransferHandler):
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
-        self.temporary_creds_expiry: datetime | None = None
+        self.temporary_creds: dict = {}
+        self.initial_session: boto3.session.Session
 
         super().__init__(spec)
 
