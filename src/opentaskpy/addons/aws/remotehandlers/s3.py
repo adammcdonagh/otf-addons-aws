@@ -50,13 +50,12 @@ class S3Transfer(RemoteTransferHandler):
 
     def check_credential_expiry(self) -> None:
         """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
+        if self.temporary_creds:
             self.logger.debug(
-                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
+                f"Temporary creds expire at: {self.temporary_creds['Expiration']} - Now: {datetime.now(tz=tzlocal())}"
             )
-            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
+            if self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal()):
                 self.logger.info("Renewing temporary credentials")
-                self.get_session()
                 self.get_s3_client()
 
     def get_session(self) -> None:
@@ -68,7 +67,7 @@ class S3Transfer(RemoteTransferHandler):
             "region_name": self.region_name,
         }
 
-        self.session = boto3.session.Session(**kwargs)
+        self.initial_session = boto3.session.Session(**kwargs)
 
     def get_s3_client(self) -> None:
         """Get the temporary credentials, or just return the client."""
@@ -77,7 +76,9 @@ class S3Transfer(RemoteTransferHandler):
         if os.environ.get("AWS_ENDPOINT_URL"):
             kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-        self.sts_client = self.session.client("sts", **kwargs2)
+        # Here we get a client using any ORIGINAL credentials that were passed in, or
+        # just based on the IAM role of the worker (if running natively in AWS)
+        self.sts_client = self.initial_session.client("sts", **kwargs2)
 
         if self.assume_role_arn:
             self.logger.info(f"Assuming role: {self.assume_role_arn}")
@@ -86,19 +87,18 @@ class S3Transfer(RemoteTransferHandler):
                 RoleSessionName=f"OTF{time()}",
                 DurationSeconds=900,
             )
-            temporary_creds = assumed_role_object["Credentials"]
-            # Set the credentials
-            self.aws_access_key_id = temporary_creds["AccessKeyId"]
-            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
-            self.temporary_creds_expiry = temporary_creds["Expiration"]
+            self.temporary_creds = assumed_role_object["Credentials"]
 
             # Set these in the session
             self.session = boto3.session.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                aws_session_token=temporary_creds["SessionToken"],
+                aws_access_key_id=self.temporary_creds["AccessKeyId"],
+                aws_secret_access_key=self.temporary_creds["SecretAccessKey"],
+                aws_session_token=self.temporary_creds["SessionToken"],
                 region_name=self.region_name,
             )
+        else:
+            # Take a copy of the initial session and use that
+            self.session = self.initial_session.copy()
 
         self.s3_client = self.session.client("s3", **kwargs2)
 
@@ -328,7 +328,12 @@ class S3Transfer(RemoteTransferHandler):
         self.check_credential_expiry()
 
         result = 0
-        files = glob.glob(f"{local_staging_directory}/*")
+
+        if file_list:
+            files = list(file_list.keys())
+        else:
+            files = glob.glob(f"{local_staging_directory}/*")
+
         kwargs = {}
         if self.bucket_owner_full_control:
             kwargs["ACL"] = "bucket-owner-full-control"
@@ -400,7 +405,7 @@ class S3Transfer(RemoteTransferHandler):
     def transfer_files(
         self,
         files: list[str],
-        remote_spec: dict,
+        remote_spec: dict,  # noqa: ARG002
         dest_remote_handler: RemoteTransferHandler,
     ) -> int:
         """Transfer files from the source S3 bucket to the destination bucket.
