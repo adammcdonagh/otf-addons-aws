@@ -336,6 +336,7 @@ jobs:
           S3_AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_AWS_SECRET_ACCESS_KEY }}
           S3_AWS_BUCKET_NAME: ${{ secrets.S3_AWS_BUCKET_NAME }}
+          S3_AWS_ASSUME_ROLE_ARN: ${{ secrets.S3_AWS_ASSUME_ROLE_ARN }}
         run: |
           . venv/bin/activate
           pip install -U .

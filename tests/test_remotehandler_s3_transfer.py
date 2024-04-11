@@ -1,5 +1,6 @@
 # pylint: skip-file
 # ruff: noqa
+# flake8: noqa
 import datetime
 import os
 import subprocess
@@ -14,7 +15,7 @@ from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.addons.aws.remotehandlers.s3 import S3Transfer
-from tests.fixtures.localstack import *  # noqa: F403, F405
+from tests.fixtures.localstack import *
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
