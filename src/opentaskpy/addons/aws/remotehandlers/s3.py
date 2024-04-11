@@ -1,6 +1,5 @@
 """AWS S3 remote handler."""
 
-import copy
 import glob
 import os
 import re
@@ -100,7 +99,7 @@ class S3Transfer(RemoteTransferHandler):
             )
         else:
             # Take a copy of the initial session and use that
-            self.session = copy.deepcopy(self.initial_session)
+            self.session = self.initial_session
 
         self.s3_client = self.session.client("s3", **kwargs2)
 

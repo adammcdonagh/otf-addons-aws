@@ -1,5 +1,6 @@
 #!/bin/env python3
 # pylint: skip-file
+# ruff: noqa
 import time
 
 
