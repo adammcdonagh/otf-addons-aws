@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import datetime
 import os
 import subprocess
@@ -963,7 +964,8 @@ def create_s3_file(s3_client, local_file, object_key):
 
 
 @pytest.fixture(scope="function")
-def credentials_aws_dev():
+def credentials_aws_dev(cleanup_credentials):
+
     if not os.environ.get("GITHUB_ACTIONS"):
         # Look for a .env file in the root of the project
         env_file = os.path.join(root_dir_, "../.env")

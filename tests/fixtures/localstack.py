@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import os
 
 import boto3
@@ -66,15 +67,15 @@ def localstack(docker_services) -> str:
         return address
 
 
-@pytest.fixture(scope="session")
-def credentials(localstack):
+@pytest.fixture(scope="function")
+def credentials(localstack, cleanup_credentials):
     os.environ["AWS_ACCESS_KEY_ID"] = "test"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "test"
     os.environ["AWS_REGION"] = "eu-west-1"
     os.environ["AWS_ENDPOINT_URL"] = localstack
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def cleanup_credentials():
     if os.environ.get("AWS_ACCESS_KEY_ID"):
         del os.environ["AWS_ACCESS_KEY_ID"]
@@ -84,9 +85,11 @@ def cleanup_credentials():
         del os.environ["AWS_REGION"]
     if os.environ.get("AWS_ENDPOINT_URL"):
         del os.environ["AWS_ENDPOINT_URL"]
+    if os.environ.get("ASSUME_ROLE_ARN"):
+        del os.environ["ASSUME_ROLE_ARN"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def ssm_client(localstack, credentials):
     kwargs = {
         "region_name": "eu-west-1",
@@ -95,7 +98,7 @@ def ssm_client(localstack, credentials):
     return session.client("ssm", endpoint_url=localstack)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def lambda_client(localstack, credentials):
     kwargs = {
         "region_name": "eu-west-1",
@@ -104,7 +107,7 @@ def lambda_client(localstack, credentials):
     return session.client("lambda", endpoint_url=localstack)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def s3_client(localstack, credentials):
     kwargs = {
         "region_name": "eu-west-1",
