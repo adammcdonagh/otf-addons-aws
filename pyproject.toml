@@ -41,6 +41,7 @@ dev = [
     "coverage",
     "pytest-cov",
     "moto[ecs]",
+    "freezegun",
 ]
 
 [project.urls]
