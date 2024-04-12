@@ -43,7 +43,6 @@
         "python.testing.unittestEnabled": false,
         "python.testing.pytestArgs": ["."],
         "python.analysis.typeCheckingMode": "off",
-        "black-formatter.args": ["--preview"],
         "files.associations": {
           "*.json": "jsonc"
         },
@@ -64,7 +63,8 @@
         "mypy.enabled": true,
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
-        }
+        },
+        "mypy.extraArguments": ["--exclude", "build"]
       }
     }
   }

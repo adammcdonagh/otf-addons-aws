@@ -1,4 +1,5 @@
 #!/bin/env python3
+# ruff: noqa
 import time
 
 

@@ -1,18 +1,22 @@
 # pylint: skip-file
+# ruff: noqa
+# flake8: noqa
 import datetime
+import logging
 import os
 import subprocess
 import threading
 from copy import deepcopy
 
 import botocore
+import freezegun
 import pytest
 from opentaskpy.taskhandlers import transfer
 from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.addons.aws.remotehandlers.s3 import S3Transfer
-from tests.fixtures.localstack import *  # noqa: F403, F405
+from tests.fixtures.localstack import *
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -741,6 +745,84 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     assert objects["Contents"][0]["Key"] == "dest/test.txt"
 
 
+def test_local_to_s3_assume_role_real(tmp_path, credentials_aws_dev):
+
+    task_definition = {
+        "type": "transfer",
+        "source": {
+            "directory": tmp_path,
+            "fileRegex": "tokentest.txt",
+            "fileWatch": {"timeout": 9000, "fileRegex": "tokentest\\.txt"},
+            "protocol": {"name": "local"},
+        },
+        "destination": [
+            {
+                "bucket": os.environ["S3_AWS_BUCKET_NAME"],
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                    "assume_role_arn": os.environ["S3_AWS_ASSUME_ROLE_ARN"],
+                },
+            }
+        ],
+    }
+
+    with freezegun.freeze_time(datetime.datetime.now()) as frozen_datetime:
+
+        transfer_obj = transfer.Transfer(
+            None, "local-to-s3-assume-role", task_definition
+        )
+
+        # Create a thread to move the time forward by 15 minutes, and start that thread in 2 seconds from now
+        def move_time():
+            frozen_datetime.move_to(
+                datetime.datetime.now() + datetime.timedelta(minutes=15, seconds=5)
+            )
+
+            # Create the test file under /tmp_path/tokentest.txt
+            fs.create_files([{f"{tmp_path}/tokentest.txt": {"content": "test1234"}}])
+
+        t = threading.Timer(20, move_time)
+        t.start()
+
+        # Run the transfer
+        # Create a logger
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+
+        # Create a handler to capture log messages
+        log_messages = []
+
+        class LogCaptureHandler(logging.Handler):
+            def emit(self, record):
+                log_messages.append(record.getMessage())
+
+        # Add the log capture handler to the logger
+        logger.addHandler(LogCaptureHandler())
+
+        # Run the transfer
+        assert transfer_obj.run()
+
+        # Make sure that there's a log line that says "Renewing temporary credentials"
+        assert any(
+            "Renewing temporary credentials" in log_message
+            for log_message in log_messages
+        )
+
+        # The log should also contain 2x lines starting with "Assumed role access key id", both should
+        # have a different key id though, after the tokens were refreshed. Validate that both lines exist,
+        # but that both the key ids are different
+        key_ids = ()
+        # check the log
+        for log_message in log_messages:
+            if "Assumed role access key id" in log_message:
+                key_id = log_message.split(" ")[-1]
+                key_ids += (key_id,)
+        assert len(key_ids) == 2
+        assert key_ids[0] != key_ids[1]
+
+
 def test_s3_to_s3_assume_role(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-assume_role", s3_to_s3_assume_role_task_definition
@@ -915,3 +997,36 @@ def create_s3_file(s3_client, local_file, object_key):
         Key=object_key,
         Body=open(local_file, "rb"),
     )
+
+
+@pytest.fixture(scope="function")
+def credentials_aws_dev(cleanup_credentials):
+
+    if not os.environ.get("GITHUB_ACTIONS"):
+        # Look for a .env file in the root of the project
+        env_file = os.path.join(root_dir_, "../.env")
+        if os.path.isfile(env_file):
+            with open(env_file) as f:
+                for line in f:
+                    if line.startswith("#"):
+                        continue
+                    key, value = line.strip().split("=")
+                    os.environ[key] = value
+
+            # Set the environment variables, but remove S3_ from them
+            os.environ["AWS_ACCESS_KEY_ID"] = os.environ["S3_AWS_ACCESS_KEY_ID"]
+            os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["S3_AWS_SECRET_ACCESS_KEY"]
+            os.environ["AWS_DEFAULT_REGION"] = os.environ["S3_AWS_DEFAULT_REGION"]
+
+    if os.environ.get("GITHUB_ACTIONS"):
+        if not os.environ.get("S3_AWS_ACCESS_KEY_ID"):
+            print("ERROR: Missing AWS creds")  # noqa: T201
+            assert False
+
+        # Read the AWS credentials from the environment
+        os.environ["AWS_ACCESS_KEY_ID"] = os.environ["S3_AWS_ACCESS_KEY_ID"]
+        os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["S3_AWS_SECRET_ACCESS_KEY"]
+        os.environ["AWS_DEFAULT_REGION"] = os.environ["S3_AWS_DEFAULT_REGION"]
+        os.environ["ASSUME_ROLE_ARN"] = os.environ["S3_AWS_ASSUME_ROLE_ARN"]
+        if os.environ.get("AWS_ENDPOINT_URL"):
+            del os.environ["AWS_ENDPOINT_URL"]

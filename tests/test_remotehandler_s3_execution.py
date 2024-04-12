@@ -1,11 +1,13 @@
 # pylint: skip-file
+# ruff: noqa
+# flake8: noqa
 import os
 import subprocess
 
 import pytest
 from opentaskpy.taskhandlers import execution
 
-from tests.fixtures.localstack import *  # noqa: F403, F405
+from tests.fixtures.localstack import *
 
 os.environ["OTF_NO_LOG"] = "0"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -28,7 +30,7 @@ s3_execution_task_definition = {
 }
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def setup_bucket(credentials):
     # This all relies on docker container for the AWS stack being set up and running
     # The AWS CLI should also be installed

@@ -4,7 +4,6 @@ import glob
 import os
 import re
 from datetime import datetime
-from time import time
 
 import boto3
 import opentaskpy.otflogging
@@ -15,7 +14,7 @@ from opentaskpy.remotehandlers.remotehandler import (
     RemoteTransferHandler,
 )
 
-from .creds import set_aws_creds
+from .creds import get_aws_client, set_aws_creds
 
 MAX_OBJECTS_PER_QUERY = 100
 
@@ -38,69 +37,47 @@ class S3Transfer(RemoteTransferHandler):
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
-        self.temporary_creds_expiry: datetime | None = None
+        self.temporary_creds: dict | None = None
+        self.assume_role_arn: str | None
+        self.s3_client: boto3.Client = None
 
         super().__init__(spec)
 
         set_aws_creds(self)
 
-        self.get_session()
-
-        self.get_s3_client()
-
-    def check_credential_expiry(self) -> None:
-        """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
-            self.logger.debug(
-                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
-            )
-            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
-                self.logger.info("Renewing temporary credentials")
-                self.get_session()
-                self.get_s3_client()
-
-    def get_session(self) -> None:
-        """Configures a session object to use for API calls."""
-        # Use boto3 to setup the required object for the transfer
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
+        self.credentials: dict = {
+            "AccessKeyId": self.aws_access_key_id,
+            "SecretAccessKey": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
 
-        self.session = boto3.session.Session(**kwargs)
+        self.validate_or_refresh_creds()
 
-    def get_s3_client(self) -> None:
-        """Get the temporary credentials, or just return the client."""
-        # If there's an override for endpoint_url in the environment, then use that
-        kwargs2 = {}
-        if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+    def validate_or_refresh_creds(self) -> None:
+        """Check the expiry of the temporary credentials, if applicable."""
+        if self.s3_client and not self.temporary_creds:
+            return
 
-        self.sts_client = self.session.client("sts", **kwargs2)
-
-        if self.assume_role_arn:
-            self.logger.info(f"Assuming role: {self.assume_role_arn}")
-            assumed_role_object = self.sts_client.assume_role(
-                RoleArn=self.assume_role_arn,
-                RoleSessionName=f"OTF{time()}",
-                DurationSeconds=900,
-            )
-            temporary_creds = assumed_role_object["Credentials"]
-            # Set the credentials
-            self.aws_access_key_id = temporary_creds["AccessKeyId"]
-            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
-            self.temporary_creds_expiry = temporary_creds["Expiration"]
-
-            # Set these in the session
-            self.session = boto3.session.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                aws_session_token=temporary_creds["SessionToken"],
-                region_name=self.region_name,
+        if self.temporary_creds:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds['Expiration']} - Now: {datetime.now(tz=tzlocal())}"
             )
 
-        self.s3_client = self.session.client("s3", **kwargs2)
+        if not self.s3_client or (
+            self.temporary_creds
+            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+        ):
+
+            if self.temporary_creds:
+                self.logger.info("Renewing temporary credentials")
+
+            client_result = get_aws_client("s3", self.credentials, self.assume_role_arn)
+            self.temporary_creds = (
+                client_result["temporary_creds"]
+                if client_result["temporary_creds"]
+                else None
+            )
+            self.s3_client = client_result["client"]
 
     def supports_direct_transfer(self) -> bool:
         """Return True, as you can do bucket to bucket transfers."""
@@ -116,7 +93,7 @@ class S3Transfer(RemoteTransferHandler):
             int: 0 if successful, 1 if not.
         """
         # Check that our creds are valid
-        self.check_credential_expiry()
+        self.validate_or_refresh_creds()
 
         # Determine the action to take
         # Delete the files
@@ -250,7 +227,7 @@ class S3Transfer(RemoteTransferHandler):
         try:  # pylint: disable=too-many-nested-blocks
             while True:
                 # Check that our creds are valid
-                self.check_credential_expiry()
+                self.validate_or_refresh_creds()
                 response = self.s3_client.list_objects_v2(**kwargs)
 
                 if response["KeyCount"]:
@@ -325,10 +302,15 @@ class S3Transfer(RemoteTransferHandler):
             int: 0 if successful, 1 if not.
         """
         # Check that our creds are valid
-        self.check_credential_expiry()
+        self.validate_or_refresh_creds()
 
         result = 0
-        files = glob.glob(f"{local_staging_directory}/*")
+
+        if file_list:
+            files = list(file_list.keys())
+        else:
+            files = glob.glob(f"{local_staging_directory}/*")
+
         kwargs = {}
         if self.bucket_owner_full_control:
             kwargs["ACL"] = "bucket-owner-full-control"
@@ -377,7 +359,7 @@ class S3Transfer(RemoteTransferHandler):
             int: 0 if successful, 1 if not.
         """
         # Check that our creds are valid
-        self.check_credential_expiry()
+        self.validate_or_refresh_creds()
 
         result = 0
         for file in files:
@@ -400,7 +382,7 @@ class S3Transfer(RemoteTransferHandler):
     def transfer_files(
         self,
         files: list[str],
-        remote_spec: dict,
+        remote_spec: dict,  # noqa: ARG002
         dest_remote_handler: RemoteTransferHandler,
     ) -> int:
         """Transfer files from the source S3 bucket to the destination bucket.
@@ -416,7 +398,7 @@ class S3Transfer(RemoteTransferHandler):
             command.
         """
         # Check that our creds are valid
-        self.check_credential_expiry()
+        self.validate_or_refresh_creds()
 
         # Check the remote handler, if it's another S3Transfer, then it's simple
         # to do an S3 copy via boto
@@ -459,7 +441,7 @@ class S3Transfer(RemoteTransferHandler):
             int: 0 if successful, 1 if not.
         """
         # Check that our creds are valid
-        self.check_credential_expiry()
+        self.validate_or_refresh_creds()
 
         result = 0
 
@@ -508,68 +490,51 @@ class S3Execution(RemoteExecutionHandler):
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, spec["task_id"], self.TASK_TYPE
         )
+
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
-        self.temporary_creds_expiry: datetime | None = None
+        self.temporary_creds: dict | None = None
+        self.assume_role_arn: str | None
+        self.s3_client: boto3.Client = None
 
         super().__init__(spec)
 
         set_aws_creds(self)
-        self.get_session()
-        self.get_s3_client()
 
-    def check_credential_expiry(self) -> None:
-        """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
-            self.logger.debug(
-                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
-            )
-            if self.temporary_creds_expiry <= datetime.now(tz=tzlocal()):
-                self.logger.info("Renewing temporary credentials")
-                self.get_session()
-                self.get_s3_client()
-
-    def get_session(self) -> None:
-        """Configures a session object to use for API calls."""
-        # Use boto3 to setup the required object
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
+        self.credentials: dict = {
+            "AccessKeyId": self.aws_access_key_id,
+            "SecretAccessKey": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
 
-        self.session = boto3.session.Session(**kwargs)
+        self.validate_or_refresh_creds()
 
-    def get_s3_client(self) -> None:
-        """Get the temporary credentials, or just return the client."""
-        # If there's an override for endpoint_url in the environment, then use that
-        kwargs2 = {}
-        if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+    def validate_or_refresh_creds(self) -> None:
+        """Check the expiry of the temporary credentials, if applicable."""
+        if self.s3_client and not self.temporary_creds:
+            return
 
-        if self.assume_role_arn:
-            self.logger.info(f"Assuming role: {self.assume_role_arn}")
-            self.sts_client = self.session.client("sts", **kwargs2)
-            assumed_role_object = self.sts_client.assume_role(
-                RoleArn=self.assume_role_arn,
-                RoleSessionName=f"OTF{time()}",
-            )
-            temporary_creds = assumed_role_object["Credentials"]
-            # Set the credentials
-            self.aws_access_key_id = temporary_creds["AccessKeyId"]
-            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
-            self.temporary_creds_expiry = temporary_creds["Expiration"]
-
-            # Set these in the session
-            self.session = boto3.session.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                aws_session_token=temporary_creds["SessionToken"],
-                region_name=self.region_name,
+        if self.temporary_creds:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds['Expiration']} - Now: {datetime.now(tz=tzlocal())}"
             )
 
-        self.s3_client = self.session.client("s3", **kwargs2)
+        if not self.s3_client or (
+            self.temporary_creds
+            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+        ):
+
+            if self.temporary_creds:
+                self.logger.info("Renewing temporary credentials")
+
+            client_result = get_aws_client("s3", self.credentials, self.assume_role_arn)
+            self.temporary_creds = (
+                client_result["temporary_creds"]
+                if client_result["temporary_creds"]
+                else None
+            )
+            self.s3_client = client_result["client"]
 
     # This cannot be long running, so kill doesn't really need to do anything
     def kill(self) -> None:
