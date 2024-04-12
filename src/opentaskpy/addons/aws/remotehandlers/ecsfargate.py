@@ -1,16 +1,15 @@
 """AWS Fargate Task remote handler."""
 
-import os
 from datetime import datetime
-from time import sleep, time
+from time import sleep
 
 import boto3
-import botocore.exceptions
 import opentaskpy.otflogging
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
-from .creds import set_aws_creds
+from .creds import get_aws_client, set_aws_creds
 
 
 class FargateTaskExecution(RemoteExecutionHandler):
@@ -35,66 +34,49 @@ class FargateTaskExecution(RemoteExecutionHandler):
         self.aws_access_key_id: str | None = None
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
-        self.temporary_creds_expiry: datetime | None = None
+        self.temporary_creds: dict | None = None
+        self.assume_role_arn: str | None
+        self.ecs_client: boto3.Client = None
 
         super().__init__(spec)
 
         set_aws_creds(self)
-        self.get_session()
 
-        self.get_ecs_client()
-
-    def check_credential_expiry(self) -> None:
-        """Check the expiry of the temporary credentials."""
-        if self.temporary_creds_expiry:
-            self.logger.debug(
-                f"Temporary creds expire at: {self.temporary_creds_expiry} - Now: {datetime.now(tz=tzlocal())}"
-            )
-            if self.temporary_creds_expiry < datetime.now(tz=tzlocal()):
-                self.logger.info("Renewing temporary credentials")
-                self.get_session()
-                self.get_ecs_client()
-
-    def get_session(self) -> None:
-        """Configures a session object to use for API calls."""
-        # Use boto3 to setup the required object
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
+        self.credentials: dict = {
+            "AccessKeyId": self.aws_access_key_id,
+            "SecretAccessKey": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
 
-        self.session = boto3.session.Session(**kwargs)
+        self.validate_or_refresh_creds()
 
-    def get_ecs_client(self) -> None:
-        """Get the temporary credentials, or just return the client."""
-        # If there's an override for endpoint_url in the environment, then use that
-        kwargs2 = {}
-        if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
+    def validate_or_refresh_creds(self) -> None:
+        """Check the expiry of the temporary credentials, if applicable."""
+        if self.ecs_client and not self.temporary_creds:
+            return
 
-        self.sts_client = self.session.client("sts", **kwargs2)
-
-        if self.assume_role_arn:
-            self.logger.info(f"Assuming role: {self.assume_role_arn}")
-            assumed_role_object = self.sts_client.assume_role(
-                RoleArn=self.assume_role_arn,
-                RoleSessionName=f"OTF{time()}",
-            )
-            temporary_creds = assumed_role_object["Credentials"]
-            # Set the credentials
-            self.aws_access_key_id = temporary_creds["AccessKeyId"]
-            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
-
-            # Set these in the session
-            self.session = boto3.session.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                aws_session_token=temporary_creds["SessionToken"],
-                region_name=self.region_name,
+        if self.temporary_creds:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds['Expiration']} - Now: {datetime.now(tz=tzlocal())}"
             )
 
-        self.ecs_client = self.session.client("ecs", **kwargs2)
+        if not self.ecs_client or (
+            self.temporary_creds
+            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+        ):
+
+            if self.temporary_creds:
+                self.logger.info("Renewing temporary credentials")
+
+            client_result = get_aws_client(
+                "ecs", self.credentials, self.assume_role_arn
+            )
+            self.temporary_creds = (
+                client_result["temporary_creds"]
+                if client_result["temporary_creds"]
+                else None
+            )
+            self.ecs_client = client_result["client"]
 
     def kill(self) -> None:
         """Kill the fargate task function.
@@ -166,7 +148,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
             # We'll check the status of the task every 5 seconds
             # If the task has a timeout set, then we'll use that as the timeout
             while True:
-                self.check_credential_expiry()
+                self.validate_or_refresh_creds()
                 # Get the task status
                 self.logger.info("Checking status of task")
                 task_status = self.ecs_client.describe_tasks(
@@ -239,7 +221,9 @@ class FargateTaskExecution(RemoteExecutionHandler):
             # Do we need to obtain logs?
             if self.spec.get("cloudwatchLogGroupName"):
                 # Get the log events
-                log_events = self.session.client("logs").get_log_events(
+                log_events = get_aws_client(
+                    "logs", self.credentials, self.assume_role_arn
+                )["client"].get_log_events(
                     logGroupName=self.spec["cloudwatchLogGroupName"],
                     logStreamName=f"{task}/{container_name}/{self.fargate_task_id}",
                 )
@@ -273,7 +257,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
                 )
                 result = False
 
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
             self.logger.error(
                 f"Failed to run fargate task: {task} in cluster {cluster_name}"
             )

@@ -1,5 +1,13 @@
 # Changelog
 
+## v24.15.0
+
+- Fix issue where too many files were being uploaded from worker
+- Properly fix STS token refresh code
+- Linting updates for ruff
+- Added unused argument linting check back in, which would have caught point 1
+- Refactor redundant code relating to sessions and STS token refreshing, making the code more generic and moving to `creds.py` instea
+
 ## v24.14.2
 
 - `black` formatting fix

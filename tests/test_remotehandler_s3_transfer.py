@@ -2,6 +2,7 @@
 # ruff: noqa
 # flake8: noqa
 import datetime
+import logging
 import os
 import subprocess
 import threading
@@ -785,7 +786,41 @@ def test_local_to_s3_assume_role_real(tmp_path, credentials_aws_dev):
         t.start()
 
         # Run the transfer
-        transfer_obj.run()
+        # Create a logger
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+
+        # Create a handler to capture log messages
+        log_messages = []
+
+        class LogCaptureHandler(logging.Handler):
+            def emit(self, record):
+                log_messages.append(record.getMessage())
+
+        # Add the log capture handler to the logger
+        logger.addHandler(LogCaptureHandler())
+
+        # Run the transfer
+        assert transfer_obj.run()
+
+        # Make sure that there's a log line that says "Renewing temporary credentials"
+        assert any(
+            "Renewing temporary credentials" in log_message
+            for log_message in log_messages
+        )
+
+        # The log should also contain 2x lines starting with "Assumed role access key id", both should
+        # have a different key id though, after the tokens were refreshed. Validate that both lines exist,
+        # but that both the key ids are different
+        key_ids = ()
+        # check the log
+        for log_message in log_messages:
+            if "Assumed role access key id" in log_message:
+                key_id = log_message.split(" ")[-1]
+                key_ids += (key_id,)
+        assert len(key_ids) == 2
+        assert key_ids[0] != key_ids[1]
 
 
 def test_s3_to_s3_assume_role(setup_bucket, tmp_path, s3_client):

@@ -2,16 +2,16 @@
 
 import base64
 import json
-import os
-from time import time
+from datetime import datetime
 
 import boto3
-import botocore.exceptions
 import opentaskpy.otflogging
+from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
 from opentaskpy.exceptions import InvalidConfigError
 from opentaskpy.remotehandlers.remotehandler import RemoteExecutionHandler
 
-from .creds import set_aws_creds
+from .creds import get_aws_client, set_aws_creds
 
 
 class LambdaExecution(RemoteExecutionHandler):
@@ -45,54 +45,49 @@ class LambdaExecution(RemoteExecutionHandler):
         if "functionArn" not in self.spec:
             raise InvalidConfigError("functionArn not defined in spec")
 
+        self.temporary_creds: dict | None = None
+        self.assume_role_arn: str | None
+        self.lambda_client: boto3.Client = None
+
+        super().__init__(spec)
+
         set_aws_creds(self)
 
-        self.get_session()
-
-        # If there's an override for endpoint_url in the environment, then use that
-        kwargs2 = {}
-        if os.environ.get("AWS_ENDPOINT_URL"):
-            kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
-
-        # Set the client to only try once. This prevents the lambda function being called more than once
-        # and issues when working with batch timeouts if a lambda function takes longer than the batch timeout
-        # It still means that the timeout of a lambda function is always at least 60 seconds due to the way boto3's HTTP timeout works
-        kwargs2["config"] = botocore.client.Config(retries={"max_attempts": 0})
-
-        self.sts_client = self.session.client("sts", **kwargs2)  # type: ignore[has-type]
-
-        if self.assume_role_arn:
-            self.logger.info(f"Assuming role: {self.assume_role_arn}")
-            assumed_role_object = self.sts_client.assume_role(
-                RoleArn=self.assume_role_arn,
-                RoleSessionName=f"OTF{time()}",
-                DurationSeconds=960,  # Lambda can't run for more than 15 mins
-            )
-            temporary_creds = assumed_role_object["Credentials"]
-            # Set the credentials
-            self.aws_access_key_id = temporary_creds["AccessKeyId"]
-            self.aws_secret_access_key = temporary_creds["SecretAccessKey"]
-
-            # Set these in the session
-            self.session = boto3.session.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                aws_session_token=temporary_creds["SessionToken"],
-                region_name=self.region_name,
-            )
-
-        self.lambda_client = self.session.client("lambda", **kwargs2)
-
-    def get_session(self) -> None:
-        """Configures a session object to use for API calls."""
-        # Use boto3 to setup the required object for the transfer
-        kwargs = {
-            "aws_access_key_id": self.aws_access_key_id,
-            "aws_secret_access_key": self.aws_secret_access_key,
+        self.credentials: dict = {
+            "AccessKeyId": self.aws_access_key_id,
+            "SecretAccessKey": self.aws_secret_access_key,
             "region_name": self.region_name,
         }
 
-        self.session = boto3.session.Session(**kwargs)
+        self.validate_or_refresh_creds()
+
+    def validate_or_refresh_creds(self) -> None:
+        """Check the expiry of the temporary credentials, if applicable."""
+        if self.lambda_client and not self.temporary_creds:
+            return
+
+        if self.temporary_creds:
+            self.logger.debug(
+                f"Temporary creds expire at: {self.temporary_creds['Expiration']} - Now: {datetime.now(tz=tzlocal())}"
+            )
+
+        if not self.lambda_client or (
+            self.temporary_creds
+            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+        ):
+
+            if self.temporary_creds:
+                self.logger.info("Renewing temporary credentials")
+
+            client_result = get_aws_client(
+                "lambda", self.credentials, self.assume_role_arn
+            )
+            self.temporary_creds = (
+                client_result["temporary_creds"]
+                if client_result["temporary_creds"]
+                else None
+            )
+            self.lambda_client = client_result["client"]
 
     def kill(self) -> None:
         """Kill the lambda function.
@@ -169,7 +164,7 @@ class LambdaExecution(RemoteExecutionHandler):
                 result_payload = invoke_response["Payload"].read()
                 self.logger.debug(f"Lambda function payload: {result_payload}")
 
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
             self.logger.error(f"Failed to run lambda function: {function_arn}")
             self.logger.error(e)
             result = False

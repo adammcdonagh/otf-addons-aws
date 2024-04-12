@@ -63,7 +63,8 @@
         "mypy.enabled": true,
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
-        }
+        },
+        "mypy.extraArguments": ["--exclude", "build"]
       }
     }
   }
