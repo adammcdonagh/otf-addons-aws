@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.16.0
+
+- Added a wider window for refreshing token. If it's within 60 seconds of expiry when checking we will refresh it, so handle instances where there's a delay renewing.
+
 ## v24.15.0
 
 - Fix issue where too many files were being uploaded from worker

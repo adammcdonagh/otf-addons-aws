@@ -1,6 +1,6 @@
 """AWS Fargate Task remote handler."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 import boto3
@@ -62,7 +62,8 @@ class FargateTaskExecution(RemoteExecutionHandler):
 
         if not self.ecs_client or (
             self.temporary_creds
-            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+            and self.temporary_creds["Expiration"]
+            < datetime.now(tz=tzlocal()) + timedelta(minutes=1)
         ):
 
             if self.temporary_creds:
