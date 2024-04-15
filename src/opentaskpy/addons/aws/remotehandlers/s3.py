@@ -3,7 +3,7 @@
 import glob
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import boto3
 import opentaskpy.otflogging
@@ -65,7 +65,8 @@ class S3Transfer(RemoteTransferHandler):
 
         if not self.s3_client or (
             self.temporary_creds
-            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+            and self.temporary_creds["Expiration"]
+            < datetime.now(tz=tzlocal()) + timedelta(minutes=1)
         ):
 
             if self.temporary_creds:
@@ -522,7 +523,8 @@ class S3Execution(RemoteExecutionHandler):
 
         if not self.s3_client or (
             self.temporary_creds
-            and self.temporary_creds["Expiration"] < datetime.now(tz=tzlocal())
+            and self.temporary_creds["Expiration"]
+            < datetime.now(tz=tzlocal()) + timedelta(minutes=1)
         ):
 
             if self.temporary_creds:
