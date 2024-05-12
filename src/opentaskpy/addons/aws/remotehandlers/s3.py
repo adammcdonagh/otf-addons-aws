@@ -138,9 +138,10 @@ class S3Transfer(RemoteTransferHandler):
             for file in files:
                 source_bucket = self.spec["bucket"]
                 dest_bucket = self.spec["bucket"]
+                new_file = (
+                    f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
+                )
                 if self.spec["postCopyAction"]["action"] == "rename":
-
-                    new_file = f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
 
                     # Use the pattern and sub values to rename the file correctly
                     new_file = re.sub(
