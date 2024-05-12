@@ -63,6 +63,49 @@
           "required": ["sub", "pattern"]
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "move"
+          },
+          "destination": {
+            "pattern": "^s3://"
+          }
+        }
+      },
+      "then": {
+        "allOf": [
+          {
+            "properties": {
+              "destination": {
+                "pattern": "^s3://.+/$"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "move"
+          }
+        }
+      },
+      "then": {
+        "allOf": [
+          {
+            "properties": {
+              "destination": {
+                "pattern": "/$"
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "additionalProperties": false
