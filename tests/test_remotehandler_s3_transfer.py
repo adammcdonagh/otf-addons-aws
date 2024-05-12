@@ -46,6 +46,21 @@ s3_file_watch_task_definition = {
     },
 }
 
+s3_file_watch_pagination_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": ".*-xxxx\\.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+        "fileWatch": {
+            "timeout": 10,
+        },
+    },
+}
+
 
 s3_age_conditions_task_definition = {
     "type": "transfer",
@@ -988,6 +1003,31 @@ def test_s3_file_watch_custom_creds(
     # Write the dummy file to the test S3 bucket
     create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
+    assert transfer_obj.run()
+
+
+def test_s3_file_watch_pagination(s3_client, setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        None, "s3-file-watch-pagination", s3_file_watch_pagination_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d")
+
+    # Write 1010 files locally
+    for i in range(1010):
+        fs.create_files([{f"{tmp_path}/{datestamp}-{i}.txt": {"content": "test1234"}}])
+        create_s3_file(
+            s3_client, f"{tmp_path}/{datestamp}-{i}.txt", f"src/{datestamp}-{i}.txt"
+        )
+
+    # Now write another
+    fs.create_files([{f"{tmp_path}/{datestamp}-xxxx.txt": {"content": "test1234"}}])
+    create_s3_file(
+        s3_client, f"{tmp_path}/{datestamp}-xxxx.txt", f"src/{datestamp}-xxxx.txt"
+    )
+
+    # File should be found
     assert transfer_obj.run()
 
 

@@ -272,7 +272,8 @@ class S3Transfer(RemoteTransferHandler):
                         kwargs["ContinuationToken"] = response["NextContinuationToken"]
                     except KeyError:
                         break
-                break
+                else:
+                    break
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error(f"Error listing files: {self.spec['bucket']}")
             self.logger.exception(e)
