@@ -135,6 +135,33 @@ def test_s3_source_file_watch(valid_transfer):
     assert validate_transfer_json(json_data)
 
 
+def test_s3_post_copy_action(valid_transfer):
+
+    json_data = {
+        "type": "transfer",
+        "source": valid_transfer,
+    }
+
+    json_data["source"]["postCopyAction"] = {
+        "action": "move",
+        "destination": "s3://test-bucket/dest",
+    }
+
+    assert not validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"]["destination"] = "s3://test-bucket/dest/"
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"]["destination"] = "s3://"
+    assert not validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"]["destination"] = "archive/"
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"]["destination"] = "/"
+    assert validate_transfer_json(json_data)
+
+
 def test_s3_destination(valid_transfer, valid_destination):
     json_data = {
         "type": "transfer",

@@ -43,7 +43,7 @@ As part of the upload, the `bucket-owner-full-control` ACL flag is applied to al
 
 - Plain file watch
 - File watch/transfer with file size and age constraints
-- `move` & `delete` post copy actions
+- `move`, `rename` & `delete` post copy actions
 - Touching empty files after transfer. e.g. `.fin` files used as completion flags
 - Touching empty files as an execution
 

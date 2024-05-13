@@ -1,5 +1,10 @@
 # Changelog
 
+## v24.19.0
+
+- Removed a stray `break` in S3 file listing that was preventing fetching more than the first 1000 records
+- Added new feature to allow moving a file from the source S3 bucket into another destination as a post copy action by referencing the full `s3://` path.
+
 ## v24.16.0
 
 - Added a wider window for refreshing token. If it's within 60 seconds of expiry when checking we will refresh it, so handle instances where there's a delay renewing.

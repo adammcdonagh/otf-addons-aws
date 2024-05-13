@@ -136,10 +136,13 @@ class S3Transfer(RemoteTransferHandler):
             or self.spec["postCopyAction"]["action"] == "rename"
         ):
             for file in files:
+                source_bucket = self.spec["bucket"]
+                dest_bucket = self.spec["bucket"]
                 new_file = (
                     f"{self.spec['postCopyAction']['destination']}{file.split('/')[-1]}"
                 )
                 if self.spec["postCopyAction"]["action"] == "rename":
+
                     # Use the pattern and sub values to rename the file correctly
                     new_file = re.sub(
                         self.spec["postCopyAction"]["pattern"],
@@ -147,12 +150,25 @@ class S3Transfer(RemoteTransferHandler):
                         new_file,
                     )
 
-                self.logger.info(f'"Moving" file from {file} to {new_file}')
+                else:
+                    # Check if the destination starts with s3://, if so, then we are also moving bucket
+                    if self.spec["postCopyAction"]["destination"].startswith("s3://"):
+                        dest_bucket = self.spec["postCopyAction"]["destination"].split(
+                            "/"
+                        )[2]
+                        new_file = (
+                            self.spec["postCopyAction"]["destination"].split("/", 3)[3]
+                            + file.split("/")[-1]
+                        )
+
+                self.logger.info(
+                    f'"Moving" file from s3://{source_bucket}/{file} to s3://{dest_bucket}/{new_file}'
+                )
 
                 self.s3_client.copy_object(
-                    Bucket=self.spec["bucket"],
+                    Bucket=dest_bucket,
                     CopySource={
-                        "Bucket": self.spec["bucket"],
+                        "Bucket": source_bucket,
                         "Key": file,
                     },
                     Key=new_file,
@@ -160,7 +176,7 @@ class S3Transfer(RemoteTransferHandler):
 
                 # Check that the copy worked
                 try:
-                    self.s3_client.head_object(Bucket=self.spec["bucket"], Key=new_file)
+                    self.s3_client.head_object(Bucket=dest_bucket, Key=new_file)
                 except Exception as e:
                     # Print the exception message
                     self.logger.error(e)
@@ -168,7 +184,7 @@ class S3Transfer(RemoteTransferHandler):
                     return 1
 
                 response = self.s3_client.delete_objects(
-                    Bucket=self.spec["bucket"],
+                    Bucket=source_bucket,
                     Delete={
                         "Objects": [{"Key": file}],
                         "Quiet": True,
@@ -182,7 +198,7 @@ class S3Transfer(RemoteTransferHandler):
                 # Check that the delete worked
                 try:
                     response = self.s3_client.head_object(
-                        Bucket=self.spec["bucket"], Key=file
+                        Bucket=source_bucket, Key=file
                     )
                     self.logger.error(response)
                     self.logger.error(f"Failed to delete file: {file}")
@@ -272,7 +288,8 @@ class S3Transfer(RemoteTransferHandler):
                         kwargs["ContinuationToken"] = response["NextContinuationToken"]
                     except KeyError:
                         break
-                break
+                else:
+                    break
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error(f"Error listing files: {self.spec['bucket']}")
             self.logger.exception(e)

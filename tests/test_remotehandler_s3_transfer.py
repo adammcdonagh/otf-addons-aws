@@ -46,6 +46,21 @@ s3_file_watch_task_definition = {
     },
 }
 
+s3_file_watch_pagination_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": ".*-xxxx\\.txt",
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+        "fileWatch": {
+            "timeout": 10,
+        },
+    },
+}
+
 
 s3_age_conditions_task_definition = {
     "type": "transfer",
@@ -243,6 +258,31 @@ s3_to_s3_pca_move_task_definition = {
         "postCopyAction": {
             "action": "move",
             "destination": "src/archive/",
+        },
+        "protocol": {
+            "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+        },
+    },
+    "destination": [
+        {
+            "bucket": BUCKET_NAME_2,
+            "directory": "dest",
+            "protocol": {
+                "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+            },
+        },
+    ],
+}
+
+s3_to_s3_pca_move_new_bucket_task_definition = {
+    "type": "transfer",
+    "source": {
+        "bucket": BUCKET_NAME,
+        "directory": "src",
+        "fileRegex": "pca-move\\.txt",
+        "postCopyAction": {
+            "action": "move",
+            "destination": f"s3://{BUCKET_NAME_2}/PCA/",
         },
         "protocol": {
             "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
@@ -900,6 +940,55 @@ def test_s3_to_s3_copy_pca_move(setup_bucket, tmp_path, s3_client):
     assert objects["Contents"][0]["Key"] == "src/archive/pca-move.txt"
 
 
+def test_s3_to_s3_copy_pca_move_new_bucket(setup_bucket, tmp_path, s3_client):
+    transfer_obj = transfer.Transfer(
+        None,
+        "s3-to-s3-pca-move-new-bucket",
+        s3_to_s3_pca_move_new_bucket_task_definition,
+    )
+
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/pca-move.txt": {"content": "test1234"}}])
+    create_s3_file(s3_client, f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
+
+    assert transfer_obj.run()
+
+    # Check that the file is in the destination bucket (as well as the moved file)
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    assert len(objects["Contents"]) == 2
+    assert any(obj["Key"] == "dest/pca-move.txt" for obj in objects["Contents"])
+
+    # Check that the file has been moved to the new location in the new bucket
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    assert len(objects["Contents"]) == 2
+    # Check there's a key named "PCA/pca-move.txt"
+    assert any(obj["Key"] == "PCA/pca-move.txt" for obj in objects["Contents"])
+
+    # Try again but change the post copy move destination to the root of the bucket instead
+    s3_to_s3_pca_move_new_bucket_task_definition_copy = deepcopy(
+        s3_to_s3_pca_move_new_bucket_task_definition
+    )
+    s3_to_s3_pca_move_new_bucket_task_definition_copy["source"]["postCopyAction"][
+        "destination"
+    ] = f"s3://{BUCKET_NAME_2}/"
+
+    fs.create_files([{f"{tmp_path}/pca-move.txt": {"content": "test1234"}}])
+    create_s3_file(s3_client, f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "s3-to-s3-pca-move-new-bucket-2",
+        s3_to_s3_pca_move_new_bucket_task_definition_copy,
+    )
+
+    assert transfer_obj.run()
+
+    # Check the file exists in the root of the bucket
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    assert any(obj["Key"] == "pca-move.txt" for obj in objects["Contents"])
+
+
 def test_s3_to_s3_copy_pca_rename(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-rename", s3_to_s3_pca_rename_task_definition
@@ -988,6 +1077,31 @@ def test_s3_file_watch_custom_creds(
     # Write the dummy file to the test S3 bucket
     create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
+    assert transfer_obj.run()
+
+
+def test_s3_file_watch_pagination(s3_client, setup_bucket, tmp_path):
+    transfer_obj = transfer.Transfer(
+        None, "s3-file-watch-pagination", s3_file_watch_pagination_task_definition
+    )
+
+    # Create a file to watch for with the current date
+    datestamp = datetime.datetime.now().strftime("%Y%m%d")
+
+    # Write 1010 files locally
+    for i in range(1010):
+        fs.create_files([{f"{tmp_path}/{datestamp}-{i}.txt": {"content": "test1234"}}])
+        create_s3_file(
+            s3_client, f"{tmp_path}/{datestamp}-{i}.txt", f"src/{datestamp}-{i}.txt"
+        )
+
+    # Now write another
+    fs.create_files([{f"{tmp_path}/{datestamp}-xxxx.txt": {"content": "test1234"}}])
+    create_s3_file(
+        s3_client, f"{tmp_path}/{datestamp}-xxxx.txt", f"src/{datestamp}-xxxx.txt"
+    )
+
+    # File should be found
     assert transfer_obj.run()
 
 
