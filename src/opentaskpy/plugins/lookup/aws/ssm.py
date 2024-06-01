@@ -27,12 +27,12 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
 
     Raises:
         LookupPluginError: Returned if the kwarg 'name' is not provided
-        FileNotFoundError: Returned if the file does not exist
+        ClientError: Returned if the parameter does not exist
 
     Returns:
-        _type_: The value read from the file
+        _type_: The value read from Parameter Store
     """
-    # Expect a kwarg named url, and value
+    # Expect a kwarg named name
     expected_kwargs = ["name"]
     for kwarg in expected_kwargs:
         if kwarg not in kwargs:
@@ -41,7 +41,7 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
                 f" '{plugin_name}'"
             )
 
-    globals_ = kwargs["globals"] if "globals" in kwargs else None
+    globals_ = kwargs.get("globals", None)
 
     aws_access_key_id = (
         globals_["AWS_ACCESS_KEY_ID"]
