@@ -38,7 +38,14 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
-        "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py"],
+        "python.testing.unittestArgs": [
+          "-v",
+          "-s",
+          "tests",
+          "-p",
+          "test_*.py",
+          "--keepalive"
+        ],
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.testing.unittestEnabled": false,
         "python.testing.pytestArgs": ["."],
