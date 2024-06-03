@@ -1,44 +1,35 @@
-"""SSM Param Store lookup plugin.
+"""Caching plugin for writing variables to AWS SSM."""
 
-Uses boto3 to pull out a parameter from AWS Parameter Store
-This uses AWS authentication, either from the IAM role of the host,
-by using environment variables, or variables in variables.json file
-"""
-
-import json
 import os
 
 import boto3
 import opentaskpy.otflogging
 from botocore.exceptions import ClientError
-from opentaskpy.exceptions import LookupPluginError
+from opentaskpy.exceptions import CachingPluginError
 
 logger = opentaskpy.otflogging.init_logging(__name__)
 
-plugin_name = "ssm"
+CACHE_NAME = "vc_ssm"
 
 
 def run(**kwargs):  # type: ignore[no-untyped-def]
-    """Pull a variable from AWS SSM.
+    """Write a variable to AWS SSM.
 
     Args:
-        **kwargs: Expect a kwarg named name. This should be the key within SSM to the
-        variable to obtain. The value should be a string.
+        **kwargs: Expect kwargs named 'name', and 'value'. This should be the Parameter
+         Store parameter value to write to, and the value to put into the file
 
     Raises:
-        LookupPluginError: Returned if the kwarg 'name' is not provided
-        ClientError: Returned if the parameter does not exist
-
-    Returns:
-        _type_: The value read from Parameter Store
+        CachingPluginError: Returned if the kwarg 'name' or 'value' is not provided
+        FileNotFoundError: Returned if the file does not exist
     """
-    # Expect a kwarg named name
-    expected_kwargs = ["name"]
+    # Expect a kwarg named name, and value
+    expected_kwargs = ["name", "value"]
     for kwarg in expected_kwargs:
         if kwarg not in kwargs:
-            raise LookupPluginError(
-                f"Missing kwarg: '{kwarg}' while trying to run lookup plugin"
-                f" '{plugin_name}'"
+            raise CachingPluginError(
+                f"Missing kwarg: '{kwarg}' while trying to run caching plugin"
+                f" '{CACHE_NAME}'"
             )
 
     globals_ = kwargs.get("globals", None)
@@ -69,29 +60,22 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
     if os.environ.get("AWS_ENDPOINT_URL"):
         kwargs2["endpoint_url"] = os.environ.get("AWS_ENDPOINT_URL")
 
-    result = None
     try:
         session = boto3.session.Session(**boto3_kwargs)
         ssm = session.client("ssm", **kwargs2)
-        response = ssm.get_parameter(Name=kwargs["name"], WithDecryption=True)
-        result = response["Parameter"]["Value"]
 
-        logger.log(12, f"Read '{result}' from param {kwargs['name']}")
-
+        # Write the value to the SSM parameter
+        ssm.put_parameter(
+            Name=kwargs["name"],
+            Value=kwargs["value"],
+            Type="SecureString",
+            Overwrite=True,
+        )
     except ClientError as e:
         if e.response["Error"]["Code"] == "ParameterNotFound":
             logger.error(f"Parameter not found: {kwargs['name']}: {e}")
             raise e
         raise e
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
-
-    # Escape any escape characters so they can be stored in JSON as a string
-    if result:
-        # Escape any newline characters
-        result = result.replace("\n", "\\n")
-        result = json.dumps(result)
-        # Remove the leading and trailing quotes
-        result = result[1:-1]
-
-    return result
+        logger.error(f"Failed to write SSM parameter: {kwargs['name']}: {e}")
+        raise e
