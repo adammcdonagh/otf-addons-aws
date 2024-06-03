@@ -3,7 +3,7 @@
 
 from opentaskpy.taskhandlers import transfer
 
-from opentaskpy.variablecaching.aws import ssm
+from opentaskpy.variablecaching.aws import vc_ssm
 from tests.fixtures.localstack import *  # noqa: F403
 
 dummy_task_definition = {
@@ -15,7 +15,7 @@ dummy_task_definition = {
         "cacheableVariables": [
             {
                 "variableName": "accessToken",
-                "cachingPlugin": "aws.ssm",
+                "cachingPlugin": "aws.vc_ssm",
                 "cacheArgs": {
                     "name": "/test/variablename",
                 },

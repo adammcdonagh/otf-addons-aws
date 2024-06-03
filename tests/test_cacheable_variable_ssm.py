@@ -4,20 +4,20 @@
 from botocore.exceptions import ClientError
 from opentaskpy.exceptions import CachingPluginError
 
-from opentaskpy.variablecaching.aws import ssm
+from opentaskpy.variablecaching.aws import vc_ssm
 from tests.fixtures.localstack import *  # noqa: F403
 
 
 def test_cacheable_variable_ssm_args():
     # Test combinations of the plugin with invalid args
     with pytest.raises(CachingPluginError):
-        ssm.run()
+        vc_ssm.run()
 
     with pytest.raises(CachingPluginError):
-        ssm.run(name="/test/variable")
+        vc_ssm.run(name="/test/variable")
 
     with pytest.raises(CachingPluginError):
-        ssm.run(value="newvalue")
+        vc_ssm.run(value="newvalue")
 
 
 def test_cacheable_variable_ssm(ssm_client):
@@ -36,7 +36,7 @@ def test_cacheable_variable_ssm(ssm_client):
 
     kwargs = {"name": f"/test/variable", "value": "newvalue"}
 
-    ssm.run(**kwargs)
+    vc_ssm.run(**kwargs)
 
     # Check the variable has content of "newvalue"
     assert (
@@ -57,4 +57,4 @@ def test_cacheable_variable_ssm_failure(ssm_client):
     del os.environ["AWS_ENDPOINT_URL"]
 
     with pytest.raises(ClientError):
-        ssm.run(**kwargs)
+        vc_ssm.run(**kwargs)

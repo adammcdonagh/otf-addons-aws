@@ -9,7 +9,7 @@ from opentaskpy.exceptions import CachingPluginError
 
 logger = opentaskpy.otflogging.init_logging(__name__)
 
-CACHE_NAME = "ssm"
+CACHE_NAME = "vc_ssm"
 
 
 def run(**kwargs):  # type: ignore[no-untyped-def]
