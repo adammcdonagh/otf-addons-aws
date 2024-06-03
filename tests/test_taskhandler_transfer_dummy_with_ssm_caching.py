@@ -1,6 +1,8 @@
 # pylint: skip-file
 # ruff: noqa
 
+from opentaskpy.taskhandlers import transfer
+
 from opentaskpy.variablecaching.aws import ssm
 from tests.fixtures.localstack import *  # noqa: F403
 
@@ -9,26 +11,28 @@ dummy_task_definition = {
     "type": "transfer",
     "source": {
         "accessToken": "0",
-        "protocol": {"name": "opentaskpy.remotehandlers.dummy"},
+        "protocol": {"name": "dummy"},
+        "cacheableVariables": [
+            {
+                "variableName": "accessToken",
+                "cachingPlugin": "aws.ssm",
+                "cacheArgs": {
+                    "name": "/test/variablename",
+                },
+            }
+        ],
     },
-    "cacheableVariables": [
-        {
-            "variableName": "source.accessToken",
-            "cachingPlugin": "aws.ssm",
-            "cacheArgs": {
-                "name": "/test/variablename",
-            },
-        }
-    ],
 }
 
 
 def test_dummy_transfer(ssm_client):
     #  The key thing to test is that the access token
     #  is written to the cache file
-    from opentaskpy.remotehandlers.dummy import DummyTransfer
 
-    dummy_transfer = DummyTransfer(dummy_task_definition)
+    transfer_obj = transfer.Transfer(None, "dummy_task_transfer", dummy_task_definition)
+
+    with pytest.raises(Exception):
+        transfer_obj.run()  # There is nothing to find, so it'll fail
 
     # Check the parameter store value now exists and contains a random number
     param = ssm_client.get_parameter(Name="/test/variablename", WithDecryption=True)
