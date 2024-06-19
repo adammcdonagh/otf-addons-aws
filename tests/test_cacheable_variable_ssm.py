@@ -1,6 +1,9 @@
 # pylint: skip-file
 # ruff: noqa
 
+import os
+
+import pytest
 from botocore.exceptions import ClientError
 from opentaskpy.exceptions import CachingPluginError
 

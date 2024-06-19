@@ -76,7 +76,13 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
         response = ssm.get_parameter(Name=kwargs["name"], WithDecryption=True)
         result = response["Parameter"]["Value"]
 
-        logger.log(12, f"Read '{result}' from param {kwargs['name']}")
+        # Very simple redacting filter here for secrets, e.g. pgp private keys,
+        # or ssh private keys
+        log_result = result
+        if " private " in result.lower():
+            log_result = "REDACTED"
+
+        logger.log(12, f"Read '{log_result}' from param {kwargs['name']}")
 
     except ClientError as e:
         if e.response["Error"]["Code"] == "ParameterNotFound":
