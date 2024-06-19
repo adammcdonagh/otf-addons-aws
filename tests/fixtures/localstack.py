@@ -114,3 +114,12 @@ def s3_client(localstack, credentials):
     }
     session = boto3.session.Session(**kwargs)
     return session.client("s3", endpoint_url=localstack)
+
+
+@pytest.fixture(scope="function")
+def secretsmanager_client(localstack, credentials):
+    kwargs = {
+        "region_name": "eu-west-1",
+    }
+    session = boto3.session.Session(**kwargs)
+    return session.client("secretsmanager", endpoint_url=localstack)

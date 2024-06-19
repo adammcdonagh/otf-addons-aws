@@ -1,8 +1,12 @@
 # Changelog
 
+## v24.25.0
+
+- Added new cacheable plugin equivalent to the SSM one, but for Secrets Manager
+
 ## v24.23.0
 
-- Added new cacheable plugin to allow dynamically updated variables to be written back to SSM Parameter Store/Secrets Manager. For more detail see `open-task-framework` documentation for version 24.22.0
+- Added new cacheable plugin to allow dynamically updated variables to be written back to SSM Parameter Store. For more detail see `open-task-framework` documentation for version 24.22.0
 - Minor tweaks to SSM lookup plugin
 
 ## v24.19.0
