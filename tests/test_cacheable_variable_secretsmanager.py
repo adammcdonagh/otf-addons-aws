@@ -26,8 +26,8 @@ def test_cacheable_variable_ssm_args():
 def test_cacheable_variable_vc_secretsmanager(secretsmanager_client):
 
     # Create a new ParamStore value
-    secretsmanager_client.put_parameter(
-        SecretId="/test/variable",
+    secretsmanager_client.create_secret(
+        Name="/test/variable",
         SecretString="originalvalue",
     )
 
@@ -52,7 +52,7 @@ def test_cacheable_variable_vc_secretsmanager(secretsmanager_client):
     )
 
 
-def test_cacheable_variable_secretsmanager_failure(ssm_client):
+def test_cacheable_variable_secretsmanager_failure(secretsmanager_client):
 
     kwargs = {"name": "xxxx", "value": "newvalue"}
 
