@@ -13,6 +13,9 @@
     "flags": {
       "$ref": "s3_destination/flags.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "transferType": {
       "type": "string",
       "enum": ["proxy", "push"]

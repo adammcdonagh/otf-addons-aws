@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.25.1
+
+- Add possibility for encryption to the s3 schemas
+
 ## v24.25.0
 
 - Added new cacheable plugin equivalent to the SSM one, but for Secrets Manager

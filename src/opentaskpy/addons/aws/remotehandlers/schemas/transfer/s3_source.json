@@ -22,6 +22,9 @@
     "postCopyAction": {
       "$ref": "s3_source/postCopyAction.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "protocol": {
       "$ref": "s3_source/protocol.json"
     }
