@@ -8,7 +8,8 @@
     },
     "directory": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "pattern": "^(?!/)(?!.*/$).*$"
     },
     "fileRegex": {
       "type": "string"

@@ -49,7 +49,7 @@ def valid_protocol_definition_using_assume_role_and_keys():
 def valid_transfer(valid_protocol_definition):
     return {
         "bucket": "test-bucket",
-        "directory": "/src",
+        "directory": "src",
         "fileRegex": ".*\\.txt",
         "protocol": valid_protocol_definition,
     }
@@ -98,6 +98,16 @@ def test_s3_source_basic(valid_transfer):
     }
 
     assert validate_transfer_json(json_data)
+
+    # Add / to the directory and validate it fails
+    json_data["source"]["directory"] = "/src/"
+    assert not validate_transfer_json(json_data)
+
+    json_data["source"]["directory"] = "/src"
+    assert not validate_transfer_json(json_data)
+
+    json_data["source"]["directory"] = "src/"
+    assert not validate_transfer_json(json_data)
 
     # Remove protocol
     del json_data["source"]["protocol"]
@@ -160,6 +170,22 @@ def test_s3_post_copy_action(valid_transfer):
 
     json_data["source"]["postCopyAction"]["destination"] = "/"
     assert validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"] = {
+        "action": "",
+    }
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"] = {
+        "action": "none",
+        "destination": "s3://test-bucket/dest",
+    }
+    assert validate_transfer_json(json_data)
+
+    json_data["source"]["postCopyAction"] = {
+        "action": "invalid",
+    }
+    assert not validate_transfer_json(json_data)
 
 
 def test_s3_destination(valid_transfer, valid_destination):

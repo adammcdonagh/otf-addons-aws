@@ -1,5 +1,10 @@
 # Changelog
 
+## v24.25.2
+
+- Allow blank postCopyAction, or "none". This can be useful when using the same job definition for multiple environments and are using a variable to control the PCA. This way you can set the variable to "none" in the environment where you don't want it to run.
+- Also prevent S3 source directories from starting or ending with a /
+
 ## v24.25.1
 
 - Add possibility for encryption to the s3 schemas

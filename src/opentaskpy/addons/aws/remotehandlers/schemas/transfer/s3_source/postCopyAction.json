@@ -5,7 +5,7 @@
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["move", "rename", "delete"]
+      "enum": ["move", "rename", "delete", "", "none"]
     },
     "destination": {
       "type": "string"
@@ -31,9 +31,16 @@
         "required": ["action", "destination"]
       },
       "else": {
-        "properties": {
-          "destination": {
-            "not": {}
+        "if": {
+          "properties": {
+            "action": {
+              "enum": ["move", "rename"]
+            }
+          }
+        },
+        "then": {
+          "not": {
+            "required": ["destination"]
           }
         }
       }
