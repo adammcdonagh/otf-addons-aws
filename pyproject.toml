@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otf-addons-aws"
-version = "v24.28.0"
+version = "v24.28.1"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license = { text = "GPLv3" }
 classifiers = [
@@ -53,7 +53,7 @@ dev = [
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v24.28.0"
+current_version = "v24.28.1"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
