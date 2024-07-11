@@ -18,6 +18,9 @@
     },
     "region_name": {
       "type": "string"
+    },
+    "botocoreReadTimeout": {
+      "type": "int"
     }
   },
   "required": ["name"],

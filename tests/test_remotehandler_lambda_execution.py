@@ -214,6 +214,13 @@ def test_run_lambda_function(credentials, lambda_client, s3_client, setup_bucket
     )
     assert execution_obj.run()
 
+    # Change the protocol config to have a botocoreReadTimeout set
+    lambda_execution_task_definition_copy["protocol"]["botocoreReadTimeout"] = 10
+    execution_obj = execution.Execution(
+        None, "call-lambda-function", lambda_execution_task_definition_copy
+    )
+    assert execution_obj.run()
+
 
 def test_run_lambda_function_with_failure(credentials, lambda_client):
     function_arn = create_lambda_function(lambda_client, "lambda_failure.py", {})

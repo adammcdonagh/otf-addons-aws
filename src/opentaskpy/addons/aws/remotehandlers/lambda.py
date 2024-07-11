@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import boto3
 import opentaskpy.otflogging
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from opentaskpy.exceptions import InvalidConfigError
@@ -80,8 +81,15 @@ class LambdaExecution(RemoteExecutionHandler):
             if self.temporary_creds:
                 self.logger.info("Renewing temporary credentials")
 
+            # If protocol has a botocoreReadTimeout set, then create a custom config with that set
+            config = None
+            if "botocoreReadTimeout" in self.spec["protocol"]:
+                config = Config(
+                    read_timeout=self.spec["protocol"]["botocoreReadTimeout"],
+                )
+
             client_result = get_aws_client(
-                "lambda", self.credentials, self.assume_role_arn
+                "lambda", self.credentials, self.assume_role_arn, config=config
             )
             self.temporary_creds = (
                 client_result["temporary_creds"]
@@ -115,9 +123,7 @@ class LambdaExecution(RemoteExecutionHandler):
         result = True
 
         function_arn = self.spec["functionArn"]
-        invocation_type = (
-            self.spec["invocationType"] if "invocationType" in self.spec else "Event"
-        )
+        invocation_type = self.spec.get("invocationType", "Event")
         payload = None
         if "payload" in self.spec:
             payload = self.spec["payload"]
