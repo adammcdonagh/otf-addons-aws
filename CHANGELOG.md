@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.28.1
+
+- Fix error in JSON schema for Lambda protocol
+
 ## v24.28.0
 
 - Update Lambda protocol to allow overriding default `read_timeout¦ value from 60 seconds. This is needed when executing long running Lambda functions

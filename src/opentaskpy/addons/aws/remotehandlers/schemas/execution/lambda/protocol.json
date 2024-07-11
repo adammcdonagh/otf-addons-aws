@@ -20,7 +20,7 @@
       "type": "string"
     },
     "botocoreReadTimeout": {
-      "type": "int"
+      "type": "integer"
     }
   },
   "required": ["name"],
