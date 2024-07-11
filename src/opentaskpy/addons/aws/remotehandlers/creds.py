@@ -5,12 +5,16 @@ from time import time
 
 import boto3
 import opentaskpy.otflogging
+from botocore.config import Config
 
 logger = opentaskpy.otflogging.init_logging(__name__, None, None)
 
 
 def get_aws_client(
-    client_type: str, credentials: dict, assume_role_arn: str | None = None
+    client_type: str,
+    credentials: dict,
+    assume_role_arn: str | None = None,
+    config: Config | None = None,
 ) -> dict:
     """Get an AWS client of the specified type using the provided credentials.
 
@@ -18,6 +22,7 @@ def get_aws_client(
         client_type: The type of client to get
         credentials: The credentials to use
         assume_role_arn: The role to assume
+        config: The config to use for the client
     """
     supported_types = ["s3", "ecs", "lambda", "logs"]
     if client_type not in supported_types:
@@ -56,7 +61,7 @@ def get_aws_client(
     session = boto3.session.Session(**kwargs2)
 
     return {
-        "client": session.client(client_type, **kwargs),
+        "client": session.client(client_type, **kwargs, config=config),
         "temporary_creds": credentials if assume_role_arn else None,
     }
 
@@ -91,8 +96,6 @@ def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
         else os.environ.get("AWS_REGION")
     )
 
-    obj.bucket_owner_full_control = (
-        obj.spec["protocol"]["bucket_owner_full_control"]
-        if "bucket_owner_full_control" in obj.spec["protocol"]
-        else True
+    obj.bucket_owner_full_control = obj.spec["protocol"].get(
+        "bucket_owner_full_control", True
     )

@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.28.0
+
+- Update Lambda protocol to allow overriding default `read_timeout¦ value from 60 seconds. This is needed when executing long running Lambda functions
+
 ## v24.25.2
 
 - Allow blank postCopyAction, or "none". This can be useful when using the same job definition for multiple environments and are using a variable to control the PCA. This way you can set the variable to "none" in the environment where you don't want it to run.
