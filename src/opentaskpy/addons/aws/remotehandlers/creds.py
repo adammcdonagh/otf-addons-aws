@@ -1,13 +1,65 @@
 """AWS helper functions."""
 
 import os
+import socket
 from time import time
 
 import boto3
 import opentaskpy.otflogging
+from botocore.args import ClientArgsCreator
 from botocore.config import Config
 
 logger = opentaskpy.otflogging.init_logging(__name__, None, None)
+
+
+def _custom_compute_socket_options(self, scoped_config, client_config=None):  # type: ignore[no-untyped-def]
+    # This is a workaround for an issue in botocore - See the following PR for more details:
+    # https://github.com/boto/botocore/pull/3140
+    # Once this is merged, we can remove this monkey patch
+
+    # This forces a more aggressive keepalive, as the default is too low for default
+    # AWS NAT gateways where the idle timeout is set to 350 seconds
+
+    socket_options = [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
+    client_keepalive = client_config and client_config.tcp_keepalive
+    scoped_keepalive = (
+        scoped_config
+        and self._ensure_boolean(  # pylint: disable=protected-access
+            scoped_config.get("tcp_keepalive", False)
+        )
+    )
+    # Enables TCP Keepalive if specified in client config object or shared config file.
+    if not client_keepalive and not scoped_keepalive:
+        socket_options.append((socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1))
+        return socket_options
+
+    seconds_in_a_minute = 60
+
+    client_read_timeout = client_config and client_config.read_timeout
+    scoped_read_timeout = scoped_config.get("read_timeout", None)
+
+    read_timeout = (
+        scoped_read_timeout if scoped_read_timeout else client_read_timeout
+    ) or seconds_in_a_minute
+
+    maximum_keepalive_probes = int(read_timeout / seconds_in_a_minute) or 1
+    keep_idle = (
+        seconds_in_a_minute if read_timeout > seconds_in_a_minute else read_timeout
+    )
+
+    socket_options.extend(
+        [
+            (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+            (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, keep_idle),
+            (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, keep_idle),
+            (
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPCNT,
+                maximum_keepalive_probes,
+            ),
+        ],
+    )
+    return socket_options
 
 
 def get_aws_client(
@@ -24,6 +76,13 @@ def get_aws_client(
         assume_role_arn: The role to assume
         config: The config to use for the client
     """
+    if client_type == "lambda":
+        # Monkey patch the socket options for lambda
+        # See above for more details
+        ClientArgsCreator._compute_socket_options = (  # pylint: disable=protected-access
+            _custom_compute_socket_options
+        )
+
     supported_types = ["s3", "ecs", "lambda", "logs"]
     if client_type not in supported_types:
         raise ValueError(
