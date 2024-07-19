@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.29.0
+
+- Add workaround for botocore issue with socket options for Lambda
+
 ## v24.28.1
 
 - Fix error in JSON schema for Lambda protocol

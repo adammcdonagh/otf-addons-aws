@@ -86,6 +86,7 @@ class LambdaExecution(RemoteExecutionHandler):
             if "botocoreReadTimeout" in self.spec["protocol"]:
                 config = Config(
                     read_timeout=self.spec["protocol"]["botocoreReadTimeout"],
+                    tcp_keepalive=True,
                 )
 
             client_result = get_aws_client(
