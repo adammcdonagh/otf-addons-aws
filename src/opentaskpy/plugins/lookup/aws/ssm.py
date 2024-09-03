@@ -85,12 +85,17 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
         logger.log(12, f"Read '{log_result}' from param {kwargs['name']}")
 
     except ClientError as e:
+        # To prevent complete failure of all jobs in an environment on failed lookup return 'UNKNOWN and log error instead of throwing exception'
         if e.response["Error"]["Code"] == "ParameterNotFound":
             logger.error(f"Parameter not found: {kwargs['name']}: {e}")
-            raise e
-        raise e
+        else:
+            logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
+        logger.warning("SSM parameter lookup failed but continuing anyway")
+        return "UNKNOWN"
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
+        logger.warning("SSM parameter lookup failed but continuing anyway")
+        return "UNKNOWN"
 
     # Escape any escape characters so they can be stored in JSON as a string
     if result:

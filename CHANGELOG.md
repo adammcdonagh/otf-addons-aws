@@ -1,5 +1,9 @@
 # Changelog
 
+## v24.36.0
+
+- Adjust AWS (SSM) lookup plugin to log an error and use "UNKNOWN" for the value of failed secrets, instead of raising exception and breaking all jobs within environment
+
 ## v24.29.0
 
 - Add workaround for botocore issue with socket options for Lambda
