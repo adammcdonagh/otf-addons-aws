@@ -28,11 +28,12 @@ def test_ssm_plugin_missing_name():
     )
 
 
-def test_ssm_plugin_param_name_not_found(credentials):
-    with pytest.raises(ClientError) as ex:
-        run(name="does_not_exist")
-
-    assert ex.value.response["Error"]["Code"] == "ParameterNotFound"
+def test_ssm_plugin_param_name_not_found(credentials, caplog):
+    # Ensure parameter lookup failures return "UNKNOWN" and log warning rather than raising an exception to prevent full environment failure
+    with caplog.at_level(logging.WARNING):
+        result = run(name="does_not_exist")
+    assert "SSM parameter lookup failed but continuing anyway" in caplog.text
+    assert result == "UNKNOWN"
 
 
 def test_ssm_plugin_standard_string(ssm_client):
