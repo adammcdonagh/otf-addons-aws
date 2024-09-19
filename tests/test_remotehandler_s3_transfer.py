@@ -496,7 +496,7 @@ def test_s3_file_watch(s3_client, setup_bucket, tmp_path):
 
     with pytest.raises(exceptions.RemoteFileNotFoundError) as cm:
         transfer_obj.run()
-    assert "No files found after " in cm.value.args[0]
+    assert "No valid files found after " in cm.value.args[0]
 
     # Upload the 3 non-matching files
     for file in os.listdir(tmp_path):
