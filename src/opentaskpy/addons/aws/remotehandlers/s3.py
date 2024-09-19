@@ -164,15 +164,8 @@ class S3Transfer(RemoteTransferHandler):
                 self.logger.info(
                     f'"Moving" file from s3://{source_bucket}/{file} to s3://{dest_bucket}/{new_file}'
                 )
-
-                self.s3_client.copy_object(
-                    Bucket=dest_bucket,
-                    CopySource={
-                        "Bucket": source_bucket,
-                        "Key": file,
-                    },
-                    Key=new_file,
-                )
+                copy_source = {"Bucket": source_bucket, "Key": file}
+                self.s3_client.copy(copy_source, dest_bucket, new_file)
 
                 # Check that the copy worked
                 try:

@@ -1,5 +1,10 @@
 # Changelog
 
+## v24.38.0
+
+- Use boto3 s3 client copy (instead of copy_object) when moving/renaming for post copy actions, to allow handling of large files
+- Fix file watch test after text adjustment
+
 ## v24.36.1
 
 - Adjust tests for SSM parameter lookup failure
