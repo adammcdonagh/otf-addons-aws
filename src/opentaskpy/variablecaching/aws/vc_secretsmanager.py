@@ -1,10 +1,12 @@
 """Caching plugin for writing variables to AWS Secrets Manager."""
 
 import os
+from datetime import datetime, timedelta
 
 import boto3
 import opentaskpy.otflogging
 from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
 from opentaskpy.exceptions import CachingPluginError
 
 logger = opentaskpy.otflogging.init_logging(__name__)
@@ -17,7 +19,9 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
 
     Args:
         **kwargs: Expect kwargs named 'name', and 'value'. This should be the Secrets
-         Manager secret to write to, and the value to put into the file
+         Manager secret to write to, and the value to put into the file.
+         Optional kwargs named 'min_cache_age'. This should be the minimum amount of time (in seconds) to wait before saving this variable in secrets manager again
+         (recommended > 10 mins to avoid possible issues with running out of secret versions)
 
     Raises:
         CachingPluginError: Returned if the kwarg 'name' or 'value' is not provided
@@ -63,6 +67,19 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
     try:
         session = boto3.session.Session(**boto3_kwargs)
         secrets_manager = session.client("secretsmanager", **kwargs2)
+
+        # Check if this secret has been updated more recently than min cache age (if applicable)
+        if "min_cache_age" in kwargs:
+            secret = secrets_manager.describe_secret(
+                SecretId=kwargs["name"],
+            )
+            if secret["LastChangedDate"] > datetime.now(tz=tzlocal()) - timedelta(
+                seconds=int(kwargs["min_cache_age"])
+            ):
+                logger.warning(
+                    f"Not updating secret because secret last updated at {secret['LastChangedDate']}, and min_cache_age is {kwargs['min_cache_age']}"
+                )
+                return
 
         # Write the value to secrets manager
         secrets_manager.put_secret_value(
