@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.40.1
+
+- Bump workflow action versions
+
 # v24.40.0
 
 - Add optional min_cache_age kwarg for secrets manager plugin. If specified, multiple requests to update the same secret within this time period will log a warning and not update the variable in secrets manager
