@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.40.0
+
+- Add optional min_cache_age kwarg for secrets manager plugin. If specified, multiple requests to update the same secret within this time period will log a warning and not update the variable in secrets manager
+
 ## v24.38.0
 
 - Use boto3 s3 client copy (instead of copy_object) when moving/renaming for post copy actions, to allow handling of large files
