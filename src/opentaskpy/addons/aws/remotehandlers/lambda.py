@@ -137,9 +137,9 @@ class LambdaExecution(RemoteExecutionHandler):
                 Payload=json.dumps(payload),
             )
 
-            self.logger.debug(f"Got status code: {invoke_response['StatusCode']}")
+            self.logger.info(f"Got status code: {invoke_response['StatusCode']}")
             # Print the response
-            self.logger.debug(f"Lambda function response: {invoke_response}")
+            self.logger.info(f"Lambda function response: {invoke_response}")
 
             # Print the response payload
             self.logger.info(

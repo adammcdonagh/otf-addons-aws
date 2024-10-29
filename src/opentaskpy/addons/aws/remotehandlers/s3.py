@@ -231,7 +231,7 @@ class S3Transfer(RemoteTransferHandler):
 
         self.logger.info(
             f"Listing files in {self.spec['bucket']} matching"
-            f" {file_pattern}{' in' + (directory or '')}"
+            f" {file_pattern}{' in ' + (directory or '<Bucket Root directory>')}"
         )
 
         try:  # pylint: disable=too-many-nested-blocks

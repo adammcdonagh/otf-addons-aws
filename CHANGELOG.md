@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.44.0
+
+- Alter logging messages for lambda and s3 transfers a little
+
 # v24.40.1
 
 - Bump workflow action versions
