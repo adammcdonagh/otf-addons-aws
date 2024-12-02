@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.49.0
+
+- Adjust logging level of lambda output into OTF logs from debug to info
+- Bump devcontainer base image and pre-commit-hooks version
+
 # v24.44.0
 
 - Alter logging messages for lambda and s3 transfers a little
