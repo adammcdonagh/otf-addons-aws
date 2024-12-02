@@ -165,7 +165,7 @@ class LambdaExecution(RemoteExecutionHandler):
                 # base64 decode the result
                 log_result = base64.b64decode(invoke_response["LogResult"]).decode()
 
-                self.logger.debug(f"Lambda function log: {log_result}")
+                self.logger.info(f"Lambda function log: {log_result}")
 
             # Also see if there's any actual result body
             if "Payload" in invoke_response:
