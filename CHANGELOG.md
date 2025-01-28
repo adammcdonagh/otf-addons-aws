@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.4.0
+
+- Have lambda logs output to OTF logs prior to exiting when lambda returns a FunctionError
+
 # v24.49.0
 
 - Adjust logging level of lambda output into OTF logs from debug to info

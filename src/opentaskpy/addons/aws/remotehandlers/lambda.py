@@ -153,13 +153,6 @@ class LambdaExecution(RemoteExecutionHandler):
                 self.logger.error(f"Failed to run lambda function: {function_arn}")
                 return False
 
-            if "FunctionError" in invoke_response:
-                self.logger.error(
-                    f"Lambda function returned an error: {function_arn} - AWS Exception"
-                    f" message: {invoke_response['FunctionError']}"
-                )
-                return False
-
             # Log the response if there is one
             if "LogResult" in invoke_response:
                 # base64 decode the result
@@ -171,6 +164,13 @@ class LambdaExecution(RemoteExecutionHandler):
             if "Payload" in invoke_response:
                 result_payload = invoke_response["Payload"].read()
                 self.logger.debug(f"Lambda function payload: {result_payload}")
+
+            if "FunctionError" in invoke_response:
+                self.logger.error(
+                    f"Lambda function returned an error: {function_arn} - AWS Exception"
+                    f" message: {invoke_response['FunctionError']}"
+                )
+                return False
 
         except ClientError as e:
             self.logger.error(f"Failed to run lambda function: {function_arn}")
