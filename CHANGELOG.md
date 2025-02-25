@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.8.0
+
+- Add lookup plugin for AWS Secrets Manager
+- Add new environment variable to force failures if lookups fail - `OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR`
+
 # v25.4.0
 
 - Have lambda logs output to OTF logs prior to exiting when lambda returns a FunctionError
