@@ -41,6 +41,10 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
                 f" '{plugin_name}'"
             )
 
+    fail_on_exception = (
+        os.environ.get("OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR", "0") == "1"
+    )
+
     globals_ = kwargs.get("globals", None)
 
     aws_access_key_id = (
@@ -85,17 +89,25 @@ def run(**kwargs):  # type: ignore[no-untyped-def]
         logger.log(12, f"Read '{log_result}' from param {kwargs['name']}")
 
     except ClientError as e:
-        # To prevent complete failure of all jobs in an environment on failed lookup return 'UNKNOWN and log error instead of throwing exception'
+        # To prevent complete failure of all jobs in an environment on failed lookup return 'LOOKUP_FAILED and log error instead of throwing exception'
         if e.response["Error"]["Code"] == "ParameterNotFound":
             logger.error(f"Parameter not found: {kwargs['name']}: {e}")
         else:
             logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
+
+        if fail_on_exception:
+            raise e
+
         logger.warning("SSM parameter lookup failed but continuing anyway")
-        return "UNKNOWN"
+        return "LOOKUP_FAILED"
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Failed to read from SSM parameter: {kwargs['name']}: {e}")
+
+        if fail_on_exception:
+            raise e
+
         logger.warning("SSM parameter lookup failed but continuing anyway")
-        return "UNKNOWN"
+        return "LOOKUP_FAILED"
 
     # Escape any escape characters so they can be stored in JSON as a string
     if result:

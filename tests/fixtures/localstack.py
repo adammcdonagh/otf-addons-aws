@@ -87,6 +87,8 @@ def cleanup_credentials():
         del os.environ["AWS_ENDPOINT_URL"]
     if os.environ.get("ASSUME_ROLE_ARN"):
         del os.environ["ASSUME_ROLE_ARN"]
+    if os.environ.get("OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"):
+        del os.environ["OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"]
 
 
 @pytest.fixture(scope="function")
@@ -96,6 +98,15 @@ def ssm_client(localstack, credentials):
     }
     session = boto3.session.Session(**kwargs)
     return session.client("ssm", endpoint_url=localstack)
+
+
+@pytest.fixture(scope="function")
+def secrets_manager_client(localstack, credentials):
+    kwargs = {
+        "region_name": "eu-west-1",
+    }
+    session = boto3.session.Session(**kwargs)
+    return session.client("secretsmanager", endpoint_url=localstack)
 
 
 @pytest.fixture(scope="function")

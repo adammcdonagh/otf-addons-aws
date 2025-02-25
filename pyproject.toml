@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otf-addons-aws"
-version = "v25.4.0"
+version = "v25.8.0"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license = { text = "GPLv3" }
 classifiers = [
@@ -13,7 +13,11 @@ classifiers = [
     "Operating System :: POSIX",
 ]
 keywords = ["automation", "task", "framework", "aws", "s3", "ssm", "otf"]
-dependencies = ["boto3 >= 1.26", "opentaskpy >= v24.23.0"]
+dependencies = [
+    "boto3 >= 1.26",
+    "jsonpath-ng >= 1.7.0",
+    "opentaskpy >= v24.23.0",
+]
 description = "Addons for opentaskpy, giving it the ability to push/pull via AWS S3, and pull variables from AWS SSM Parameter Store."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,7 +31,7 @@ dev = [
     "pytest-shell",
     "types-requests",
     "types-python-dateutil",
-    "black >= 24.1.1",
+    "black >= 25.1.0",
     "isort",
     "pytest",
     "bumpver",
@@ -53,7 +57,7 @@ dev = [
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v25.4.0"
+current_version = "v25.8.0"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true

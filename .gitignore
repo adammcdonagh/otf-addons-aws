@@ -179,3 +179,4 @@ poetry.toml
 test/testFiles
 test/volume
 tests/volume
+.envrc

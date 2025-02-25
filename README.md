@@ -12,6 +12,7 @@ Open Task Framework (OTF) is a Python based framework to make it easy to run pre
 These addons include several additional features:
 
 - A new plugin for SSM Param Store to pull dynamic variables
+- A new plugin for AWS Secrets Manager to pull dynamic variables
 - A new remotehandler to push/pull files via AWS S3
 - A new remote handler to trigger AWS Lambda functions
 
@@ -32,6 +33,45 @@ Credentials can be set via config using equivalently named variables alongside t
 ```
 
 If the standard AWS environment variables are set, then these will be used if not set elsewhere. Otherwise, if running from AWS, then the IAM role of the machine running OTF will be used.
+
+# Other Environment Variables
+
+The following environment variables can be set to override the default behaviour of the AWS remote handlers:
+
+- `OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR`. When set to 1, will cause the lookup plugins to throw an exception when a lookup fails, otherwise they will log a warning and return `LOOKUP_FAILED` in place of the value.
+
+# Lookup Plugins
+
+Lookup plugins are used to pull values from external sources. The following lookup plugins are available:
+
+- `aws.ssm` - Pulls a value from AWS SSM Parameter Store
+- `aws.secrets_manager` - Pulls a value from AWS Secrets Manager, also supports JSONPath using the `jsonpath-ng` package when used with the `value` attribute
+
+Example SSM lookup:
+
+```json
+  "access_key_id": "{{ lookup('aws.ssm', name='ssm_param_name') }}"
+```
+
+Example Secrets Manager lookup:
+
+```json
+  "access_key_id": "{{ lookup('aws.secrets_manager', name='secrets_manager_param_name', value='foo.bar.[1]') }}"
+```
+
+Will return the following, when the secret value is a JSON string in the form of:
+
+```json
+{
+  "foo": {
+    "bar": ["first_secret_value", "nested_secret_value"]
+  }
+}
+```
+
+Result: `nested_secret_value`
+
+If the result is a list, then the first element will be returned, and a warning will be logged. The result of the JSONPath expression must be a string or an int, otherwise an error will be raised.
 
 # Transfers
 
