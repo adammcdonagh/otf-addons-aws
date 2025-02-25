@@ -340,7 +340,7 @@ jobs:
         run: |
           . venv/bin/activate
           pip install -U .
-          python -m pytest --cov="opentaskpy.addons.aws" --cov="opentaskpy.plugins.aws" --cov-report=xml
+          python -m pytest --cov="opentaskpy.addons.aws" --cov="opentaskpy.plugins.aws" --cov="opentaskpy.plugins.lookup.aws" --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.5.0

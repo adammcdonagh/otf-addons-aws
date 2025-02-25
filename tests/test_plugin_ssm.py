@@ -29,11 +29,19 @@ def test_ssm_plugin_missing_name():
 
 
 def test_ssm_plugin_param_name_not_found(credentials, caplog):
-    # Ensure parameter lookup failures return "UNKNOWN" and log warning rather than raising an exception to prevent full environment failure
+    os.environ["OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"] = "1"
+
+    with pytest.raises(ClientError) as ex:
+        result = run(name="does_not_exist")
+
+    del os.environ["OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"]
+
+    # Ensure parameter lookup failures return "LOOKUP_FAILED" and log warning rather than raising an exception to prevent full environment failure,
+    # when OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR env var is not set
     with caplog.at_level(logging.WARNING):
         result = run(name="does_not_exist")
     assert "SSM parameter lookup failed but continuing anyway" in caplog.text
-    assert result == "UNKNOWN"
+    assert result == "LOOKUP_FAILED"
 
 
 def test_ssm_plugin_standard_string(ssm_client):
