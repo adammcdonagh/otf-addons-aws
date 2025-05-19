@@ -100,7 +100,7 @@ class LambdaExecution(RemoteExecutionHandler):
                 ]
                 config_options["tcp_keepalive"] = True
 
-            config = Config(config_options)
+            config = Config(**config_options)
 
             client_result = get_aws_client(
                 "lambda", self.credentials, self.assume_role_arn, config=config
