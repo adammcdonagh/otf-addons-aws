@@ -3,6 +3,7 @@
 import base64
 import json
 from datetime import datetime, timedelta
+from typing import Any
 
 import boto3
 import opentaskpy.otflogging
@@ -81,13 +82,25 @@ class LambdaExecution(RemoteExecutionHandler):
             if self.temporary_creds:
                 self.logger.info("Renewing temporary credentials")
 
-            # If protocol has a botocoreReadTimeout set, then create a custom config with that set
-            config = None
-            if "botocoreReadTimeout" in self.spec["protocol"]:
-                config = Config(
-                    read_timeout=self.spec["protocol"]["botocoreReadTimeout"],
-                    tcp_keepalive=True,
+            # Set boto retries to 0 unless explicitly overridden in spec - retries will normally be handled within lambda code if required
+            config_options: dict[str, Any] = {}
+            if "max_attempts" in self.spec["protocol"]:
+                config_options["retries"] = {
+                    "max_attempts": self.spec["protocol"]["max_attempts"]
+                }
+                self.logger.info(
+                    f"Setting max attempts to {self.spec['protocol']['max_attempts']}"
                 )
+            else:
+                config_options["retries"] = {"max_attempts": 0}
+            # If protocol has a botocoreReadTimeout set, then create a custom config with that set
+            if "botocoreReadTimeout" in self.spec["protocol"]:
+                config_options["read_timeout"] = self.spec["protocol"][
+                    "botocoreReadTimeout"
+                ]
+                config_options["tcp_keepalive"] = True
+
+            config = Config(**config_options)
 
             client_result = get_aws_client(
                 "lambda", self.credentials, self.assume_role_arn, config=config

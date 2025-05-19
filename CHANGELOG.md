@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.20.0
+
+- Change BotoCore config used to initialise lambda client to default to zero retries of lambda executions - this can be override by setting `max_attempts` within the protocol
+
 # v25.8.0
 
 - Add lookup plugin for AWS Secrets Manager
