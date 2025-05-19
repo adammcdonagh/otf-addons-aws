@@ -21,6 +21,9 @@
     },
     "botocoreReadTimeout": {
       "type": "integer"
+    },
+    "max_attempts": {
+      "type": "integer"
     }
   },
   "required": ["name"],
