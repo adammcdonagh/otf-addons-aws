@@ -31,8 +31,7 @@ def test_dummy_transfer(ssm_client):
 
     transfer_obj = transfer.Transfer(None, "dummy_task_transfer", dummy_task_definition)
 
-    with pytest.raises(Exception):
-        transfer_obj.run()  # There is nothing to find, so it'll fail
+    transfer_obj.run()
 
     # Check the parameter store value now exists and contains a random number
     param = ssm_client.get_parameter(Name="/test/variablename", WithDecryption=True)

@@ -310,7 +310,7 @@ s3_to_s3_assume_role_task_definition = {
         },
         "protocol": {
             "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
-            "assume_role_arn": "arn:aws:iam::01234567890:role/dummy-role",
+            "assume_role_arn": "arn:aws:iam::012345678900:role/dummy-role",
         },
     },
     "destination": [
