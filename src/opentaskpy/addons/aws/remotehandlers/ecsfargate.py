@@ -115,10 +115,16 @@ class FargateTaskExecution(RemoteExecutionHandler):
         init_timeout = self.spec.get("initTimeout", 60)
 
         try:
-            overrides = {"containerOverrides": [self.spec["containerOverrides"]]}
-
-            overrides["containerOverrides"][0]["name"] = "default"
-
+            if "containerOverrides" in self.spec:
+                overrides = {"containerOverrides": [self.spec["containerOverrides"]]}
+                # If the container for which to apply the containerOverrides is not set, then we need to set it to the default
+                if "name" not in overrides["containerOverrides"][0]:
+                    self.logger.warning(
+                        "Container overrides do not have a name set, setting to default"
+                    )
+                    overrides["containerOverrides"][0]["name"] = "default"
+            else:
+                overrides = {"containerOverrides": []}
             run_response = self.ecs_client.run_task(
                 cluster=cluster_name,
                 taskDefinition=task,
@@ -217,39 +223,85 @@ class FargateTaskExecution(RemoteExecutionHandler):
                 )
                 return False
 
-            container_name = task_status["tasks"][0]["containers"][0]["name"]
+            if (
+                len(task_status["tasks"][0]["containers"]) > 1
+                and "containerName" not in self.spec
+            ):
+                # If there are multiple containers, and a specific container is not specified,
+                # we need to warn that we might be checking the wrong container's status
+                # and default to the first container
+                container_name = task_status["tasks"][0]["containers"][0]["name"]
+                self.logger.warning(
+                    f"Multiple containers found for task: {task} in cluster {cluster_name}. "
+                    + "Container Name not specified, so defaulting to first container. "
+                    + f"Checking container: {container_name}"
+                )
+            elif (
+                len(task_status["tasks"][0]["containers"]) == 1
+                and "containerName" not in self.spec
+            ):
+                # If there's only one container, we can safely assume that this is the
+                # container we want to check
+                container_name = task_status["tasks"][0]["containers"][0]["name"]
+                self.logger.info(
+                    f"Only one container found for task: {task} in cluster {cluster_name}."
+                    + f" Checking container: {container_name}"
+                )
+            elif "containerName" in self.spec:
+                # If a specific container is specified, we need to check that it exists
+                container_name = self.spec["containerName"]
+                if not any(
+                    container["name"] == container_name
+                    for container in task_status["tasks"][0]["containers"]
+                ):
+                    self.logger.warning(
+                        f"Container: {container_name} not found in task: {task} in"
+                        + f" cluster {cluster_name}, so defaulting to first container"
+                    )
+                    container_name = task_status["tasks"][0]["containers"][0]["name"]
+                else:
+                    self.logger.info(
+                        f"Checking container: {container_name} for task: {task} in"
+                        + f" cluster {cluster_name}"
+                    )
 
             # Do we need to obtain logs?
             if self.spec.get("cloudwatchLogGroupName"):
-                # Get the log events
-                log_events = get_aws_client(
-                    "logs", self.credentials, self.assume_role_arn
-                )["client"].get_log_events(
-                    logGroupName=self.spec["cloudwatchLogGroupName"],
-                    logStreamName=f"{task}/{container_name}/{self.fargate_task_id}",
-                )
+                self._get_cloudwatch_logs(task, container_name, cluster_name)
 
-                # Get the logs
-                logs = []
-                for event in log_events["events"]:
-                    logs.append(event["message"])
-
-                self.logger.info("Fargate Task output:")
-                # Log the messages to the logger
-                for line in logs:
-                    self.logger.info(line)
-
-            # Check the exitCode of the container to get the result
-            exit_code = (
-                1
-                if "exitCode" not in task_status["tasks"][0]["containers"][0]
-                else task_status["tasks"][0]["containers"][0]["exitCode"]
+            # Check the exitCode of the specified container to get the result
+            container = next(
+                (
+                    c
+                    for c in task_status["tasks"][0]["containers"]
+                    if c["name"] == container_name
+                ),
+                None,
             )
+            if not container:
+                self.logger.error(
+                    f"Container: {container_name} not found in task: {task} in cluster"
+                    f" {cluster_name}"
+                )
+                return False
+            if "exitCode" in container:
+                self.logger.info(
+                    f"Container: {container_name} in task: {task} in cluster"
+                    f" {cluster_name} exited with code: {container['exitCode']}"
+                )
+                exit_code = container["exitCode"]
+            else:
+                self.logger.warning(
+                    f"Container: {container_name} in task: {task} in cluster"
+                    f" {cluster_name} does not have an exit code, assuming failure"
+                )
+                # If the exit code is not present, we assume the task has failed
+                exit_code = 1
 
             if exit_code != 0:
                 reason = (
-                    task_status["tasks"][0]["containers"][0]["reason"]
-                    if "reason" in task_status["tasks"][0]["containers"][0]
+                    container["reason"]
+                    if "reason" in container
                     else task_status["tasks"][0]["stoppedReason"]
                 )
 
@@ -266,3 +318,68 @@ class FargateTaskExecution(RemoteExecutionHandler):
             result = False
 
         return result
+
+    def _get_cloudwatch_logs(
+        self, task: str, container_name: str, cluster_name: str
+    ) -> None:
+        # Get the task definition to check the logging configuration
+        task_definition = self.ecs_client.describe_task_definition(taskDefinition=task)
+        for container_def in task_definition["taskDefinition"]["containerDefinitions"]:
+            if not (
+                "logConfiguration" in container_def
+                or "options" in container_def["logConfiguration"]
+            ):
+                self.logger.warning(
+                    f"Container: {container_name} in task: {task} in cluster. "
+                    + f" {cluster_name} does not have logging enabled, skipping log fetch"
+                )
+                continue
+
+            # Check if the container has logging enabled to the specified log group
+            if (
+                container_def["logConfiguration"]["options"]["awslogs-group"]
+                != self.spec["cloudwatchLogGroupName"]
+            ):
+                self.logger.warning(
+                    f"Container: {container_name} in task: {task} in cluster"
+                    f" {cluster_name} does not have logging enabled to the specified log group, skipping log fetch"
+                )
+                continue
+            if (
+                "awslogs-group" in container_def["logConfiguration"]["options"]
+                and container_def["logConfiguration"]["options"]["awslogs-group"]
+                == self.spec["cloudwatchLogGroupName"]
+            ):
+                self.logger.info(
+                    f"Container: {container_name} in task: {task} in cluster"
+                    f" {cluster_name} has logging enabled to specified log group, fetching logs"
+                )
+                if (
+                    "awslogs-stream-prefix"
+                    in container_def["logConfiguration"]["options"]
+                ):
+                    logstream_name = f"{container_def['logConfiguration']['options']['awslogs-stream-prefix']}/{container_name}/{self.fargate_task_id}"
+                else:
+                    logstream_name = f"{container_name}/{self.fargate_task_id}"
+                # Get the log events
+                log_events = get_aws_client(
+                    "logs", self.credentials, self.assume_role_arn
+                )["client"].get_log_events(
+                    logGroupName=self.spec["cloudwatchLogGroupName"],
+                    logStreamName=logstream_name,
+                )
+
+                # Get the logs
+                logs = []
+                for event in log_events["events"]:
+                    logs.append(event["message"])
+
+                self.logger.info("Fargate Task output:")
+                # Log the messages to the logger
+                for line in logs:
+                    self.logger.info(line)
+            else:
+                self.logger.warning(
+                    f"Container: {container_name} in task: {task} in cluster"
+                    f" {cluster_name} does not have logging enabled, skipping log fetch"
+                )

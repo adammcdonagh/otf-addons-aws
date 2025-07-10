@@ -13,6 +13,10 @@
     "taskFamily": {
       "type": "string"
     },
+    "containerName": {
+      "type": "string",
+      "description": "Name of the container to check exit status for"
+    },
     "timeout": {
       "type": "integer"
     },

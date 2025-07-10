@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.27.0
+
+- Updates the Schema for ecsFargate remotehandler to allow specifying which container to apply containerOverides to, as well as the container for which to check the exit code to determine task success/failure
+- Updates the logic for determining exit code and fetching cloudwatch logs in ecsfargate remotehandler
+
 # v25.20.0
 
 - Change BotoCore config used to initialise lambda client to default to zero retries of lambda executions - this can be override by setting `max_attempts` within the protocol
