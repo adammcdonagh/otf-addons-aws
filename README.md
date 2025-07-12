@@ -34,6 +34,8 @@ Credentials can be set via config using equivalently named variables alongside t
 
 If the standard AWS environment variables are set, then these will be used if not set elsewhere. Otherwise, if running from AWS, then the IAM role of the machine running OTF will be used.
 
+If you are using an assumed role, the temporary credentials default to a 15 minute expiry time. This can be overridden by setting the `token_expiry_seconds` attribute in the protocol definition. The min and max values for this match the AWS STS values detailed [here](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html).
+
 # Other Environment Variables
 
 The following environment variables can be set to override the default behaviour of the AWS remote handlers:
