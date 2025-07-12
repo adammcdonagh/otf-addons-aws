@@ -35,6 +35,7 @@ class FargateTaskExecution(RemoteExecutionHandler):
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
         self.temporary_creds: dict | None = None
+        self.token_expiry_seconds: int | None = None
         self.assume_role_arn: str | None
         self.ecs_client: boto3.Client = None
 
@@ -70,7 +71,10 @@ class FargateTaskExecution(RemoteExecutionHandler):
                 self.logger.info("Renewing temporary credentials")
 
             client_result = get_aws_client(
-                "ecs", self.credentials, self.assume_role_arn
+                "ecs",
+                credentials=self.credentials,
+                token_expiry_seconds=self.token_expiry_seconds,
+                assume_role_arn=self.assume_role_arn,
             )
             self.temporary_creds = (
                 client_result["temporary_creds"]
@@ -363,7 +367,9 @@ class FargateTaskExecution(RemoteExecutionHandler):
                     logstream_name = f"{container_name}/{self.fargate_task_id}"
                 # Get the log events
                 log_events = get_aws_client(
-                    "logs", self.credentials, self.assume_role_arn
+                    "logs",
+                    credentials=self.credentials,
+                    assume_role_arn=self.assume_role_arn,
                 )["client"].get_log_events(
                     logGroupName=self.spec["cloudwatchLogGroupName"],
                     logStreamName=logstream_name,

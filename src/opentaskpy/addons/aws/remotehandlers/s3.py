@@ -38,6 +38,7 @@ class S3Transfer(RemoteTransferHandler):
         self.aws_secret_access_key: str | None = None
         self.region_name: str | None = None
         self.temporary_creds: dict | None = None
+        self.token_expiry_seconds: int | None = None
         self.assume_role_arn: str | None
         self.s3_client: boto3.Client = None
 
@@ -72,7 +73,12 @@ class S3Transfer(RemoteTransferHandler):
             if self.temporary_creds:
                 self.logger.info("Renewing temporary credentials")
 
-            client_result = get_aws_client("s3", self.credentials, self.assume_role_arn)
+            client_result = get_aws_client(
+                "s3",
+                self.credentials,
+                token_expiry_seconds=self.token_expiry_seconds,
+                assume_role_arn=self.assume_role_arn,
+            )
             self.temporary_creds = (
                 client_result["temporary_creds"]
                 if client_result["temporary_creds"]
@@ -540,7 +546,9 @@ class S3Execution(RemoteExecutionHandler):
             if self.temporary_creds:
                 self.logger.info("Renewing temporary credentials")
 
-            client_result = get_aws_client("s3", self.credentials, self.assume_role_arn)
+            client_result = get_aws_client(
+                "s3", self.credentials, assume_role_arn=self.assume_role_arn
+            )
             self.temporary_creds = (
                 client_result["temporary_creds"]
                 if client_result["temporary_creds"]

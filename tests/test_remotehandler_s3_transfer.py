@@ -4,6 +4,7 @@
 import datetime
 import logging
 import os
+import re
 import subprocess
 import threading
 from copy import deepcopy
@@ -785,6 +786,69 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
     assert objects["Contents"][0]["Key"] == "dest/test.txt"
 
 
+def test_local_to_s3_assume_role_expiry_long_token_expiry(
+    tmp_path, credentials_aws_dev
+):
+    # There's no way to refresh a token during a multipart transfer, or to resume after a failure,
+    # so user always need to specify a long enough token expiry time for their transfer
+
+    fs.create_files([{f"{tmp_path}/tokentest_long.txt": {"content": "test1234"}}])
+
+    task_definition = {
+        "type": "transfer",
+        "source": {
+            "directory": tmp_path,
+            "fileRegex": "tokentest_long.txt",
+            "protocol": {"name": "local"},
+        },
+        "destination": [
+            {
+                "bucket": os.environ["S3_AWS_BUCKET_NAME"],
+                "directory": "dest",
+                "protocol": {
+                    "name": "opentaskpy.addons.aws.remotehandlers.s3.S3Transfer",
+                    "assume_role_arn": os.environ["S3_AWS_ASSUME_ROLE_ARN"],
+                    "token_expiry_seconds": 1234,
+                },
+            }
+        ],
+    }
+
+    # Set log levels for boto3 and botocore to DEBUG
+    boto3.set_stream_logger(name="boto3", level=logging.DEBUG)
+    boto3.set_stream_logger(name="botocore", level=logging.DEBUG)
+
+    transfer_obj = transfer.Transfer(
+        None, "local-to-s3-assume-role-long-expiry", task_definition
+    )
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+
+    # Create a handler to capture log messages
+    log_messages = []
+
+    class LogCaptureHandler(logging.Handler):
+        def emit(self, record):
+            log_messages.append(record.getMessage())
+
+    # Add the log capture handler to the logger
+    logger.addHandler(LogCaptureHandler())
+
+    # Check for alog message like
+    # 2025-07-12 14:35:56,185 botocore.endpoint [DEBUG] Making request for OperationModel(name=AssumeRole) with params: {'url_path': '/', 'query_string': '', 'method': 'POST', 'headers': {'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8', 'User-Agent': 'Boto3/1.39.4 md/Botocore#1.39.4 ua/2.1 os/linux#6.6.12-linuxkit md/arch#aarch64 lang/python#3.11.11 md/pyimpl#CPython m/Z,D,b cfg/retry-mode#legacy Botocore/1.39.4'}, 'body': {'Action': 'AssumeRole', 'Version': '2011-06-15', 'RoleArn': 'arn:aws:iam::133141744297:role/assumed-role-otf-addons-aws-dev', 'RoleSessionName': 'OTF1752330956.1843534', 'DurationSeconds': 900}, 'url': 'https://sts.amazonaws.com/', 'context': {'client_region': 'eu-west-1', 'client_config': <botocore.config.Config object at 0xffff8f26fb50>, 'has_streaming_input': False, 'auth_type': 'v4', 'unsigned_payload': None, 'auth_options': ['aws.auth#sigv4'], 'signing': {'region': 'us-east-1', 'signing_name': 'sts'}, 'endpoint_properties': {'authSchemes': [{'name': 'sigv4', 'signingName': 'sts', 'signingRegion': 'us-east-1'}]}}}
+
+    # Run the transfer
+    assert transfer_obj.run()
+    # Check the log messages for the STS request asking for the session of length 1234 seconds, regex matching agains 'DurationSeconds': 1234
+    found_duration = False
+    for log_message in log_messages:
+        if re.search(r"'DurationSeconds': 1234", log_message):
+            found_duration = True
+    assert found_duration
+
+
 def test_local_to_s3_assume_role_real(tmp_path, credentials_aws_dev):
 
     task_definition = {
@@ -1131,6 +1195,8 @@ def credentials_aws_dev(cleanup_credentials):
             os.environ["AWS_ACCESS_KEY_ID"] = os.environ["S3_AWS_ACCESS_KEY_ID"]
             os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ["S3_AWS_SECRET_ACCESS_KEY"]
             os.environ["AWS_DEFAULT_REGION"] = os.environ["S3_AWS_DEFAULT_REGION"]
+
+            # If ASSUME_ROLE_ARN is
 
     if os.environ.get("GITHUB_ACTIONS"):
         if not os.environ.get("S3_AWS_ACCESS_KEY_ID"):

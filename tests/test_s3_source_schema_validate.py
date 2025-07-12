@@ -90,6 +90,23 @@ def test_s3_source_protocol(
     json_data["source"]["protocol"] = invalid_protocol_definition_using_keys_no_secret
     assert not validate_transfer_json(json_data)
 
+    json_data["source"]["protocol"] = valid_protocol_definition_using_assume_role
+
+    # Set the expiry to a sensible valule
+    json_data["source"]["protocol"]["token_expiry_seconds"] = 10000
+    assert validate_transfer_json(json_data)
+
+    # Set it too low, and too high
+    json_data["source"]["protocol"]["token_expiry_seconds"] = 899
+    assert not validate_transfer_json(json_data)
+
+    json_data["source"]["protocol"]["token_expiry_seconds"] = 43201
+    assert not validate_transfer_json(json_data)
+
+    # Remove the assume role arn and validate it fails
+    del json_data["source"]["protocol"]["assume_role_arn"]
+    assert not validate_transfer_json(json_data)
+
 
 def test_s3_source_basic(valid_transfer):
     json_data = {
