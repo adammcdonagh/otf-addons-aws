@@ -3,6 +3,7 @@
 # v25.27.1
 
 - Allow specifying a long token expiry time for assumed role credentials. This is useful for long running transfers, such as multipart uploads, where the token may expire before the transfer is complete.
+- Add JSON schema validation to destination directory, and source filewatch directory for S3 transfers, similar to that for the source directory.
 
 # v25.27.0
 
