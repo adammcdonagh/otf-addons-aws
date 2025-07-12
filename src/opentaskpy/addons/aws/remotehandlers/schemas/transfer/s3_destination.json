@@ -8,7 +8,8 @@
     },
     "directory": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "pattern": "^(?!/)(?!.*/$).*$"
     },
     "flags": {
       "$ref": "s3_destination/flags.json"

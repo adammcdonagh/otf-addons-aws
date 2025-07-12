@@ -7,7 +7,9 @@
       "type": "integer"
     },
     "directory": {
-      "type": "string"
+      "type": "string",
+      "default": "",
+      "pattern": "^(?!/)(?!.*/$).*$"
     },
     "fileRegex": {
       "type": "string"

@@ -65,6 +65,7 @@ def _custom_compute_socket_options(self, scoped_config, client_config=None):  # 
 def get_aws_client(
     client_type: str,
     credentials: dict,
+    token_expiry_seconds: int | None = 900,
     assume_role_arn: str | None = None,
     config: Config | None = None,
 ) -> dict:
@@ -73,8 +74,9 @@ def get_aws_client(
     Args:
         client_type: The type of client to get
         credentials: The credentials to use
-        assume_role_arn: The role to assume
-        config: The config to use for the client
+        token_expiry_seconds: The expiry time for the token (optional, defaults to 900)
+        assume_role_arn: The role to assume, if using assumed role credentials (optional)
+        config: The config to use for the client (optional)
     """
     if client_type == "lambda":
         # Monkey patch the socket options for lambda
@@ -100,7 +102,7 @@ def get_aws_client(
         assumed_role_object = sts_client.assume_role(
             RoleArn=assume_role_arn,
             RoleSessionName=f"OTF{time()}",
-            DurationSeconds=900,
+            DurationSeconds=token_expiry_seconds,
         )
 
         credentials = assumed_role_object["Credentials"]
@@ -148,6 +150,8 @@ def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
         if "assume_role_arn" in obj.spec["protocol"]
         else os.environ.get("AWS_ROLE_ARN")
     )
+
+    obj.token_expiry_seconds = obj.spec["protocol"].get("token_expiry_seconds", 900)
 
     obj.region_name = (
         obj.spec["protocol"]["region_name"]

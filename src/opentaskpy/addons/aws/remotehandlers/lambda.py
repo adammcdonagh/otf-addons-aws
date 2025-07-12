@@ -103,7 +103,10 @@ class LambdaExecution(RemoteExecutionHandler):
             config = Config(**config_options)
 
             client_result = get_aws_client(
-                "lambda", self.credentials, self.assume_role_arn, config=config
+                "lambda",
+                self.credentials,
+                assume_role_arn=self.assume_role_arn,
+                config=config,
             )
             self.temporary_creds = (
                 client_result["temporary_creds"]
