@@ -836,12 +836,12 @@ def test_local_to_s3_assume_role_expiry_long_token_expiry(
     # Add the log capture handler to the logger
     logger.addHandler(LogCaptureHandler())
 
-    # Check for alog message like
+    # Check for a log message like
     # 2025-07-12 14:35:56,185 botocore.endpoint [DEBUG] Making request for OperationModel(name=AssumeRole) with params: {'url_path': '/', 'query_string': '', 'method': 'POST', 'headers': {'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8', 'User-Agent': 'Boto3/1.39.4 md/Botocore#1.39.4 ua/2.1 os/linux#6.6.12-linuxkit md/arch#aarch64 lang/python#3.11.11 md/pyimpl#CPython m/Z,D,b cfg/retry-mode#legacy Botocore/1.39.4'}, 'body': {'Action': 'AssumeRole', 'Version': '2011-06-15', 'RoleArn': 'arn:aws:iam::133141744297:role/assumed-role-otf-addons-aws-dev', 'RoleSessionName': 'OTF1752330956.1843534', 'DurationSeconds': 900}, 'url': 'https://sts.amazonaws.com/', 'context': {'client_region': 'eu-west-1', 'client_config': <botocore.config.Config object at 0xffff8f26fb50>, 'has_streaming_input': False, 'auth_type': 'v4', 'unsigned_payload': None, 'auth_options': ['aws.auth#sigv4'], 'signing': {'region': 'us-east-1', 'signing_name': 'sts'}, 'endpoint_properties': {'authSchemes': [{'name': 'sigv4', 'signingName': 'sts', 'signingRegion': 'us-east-1'}]}}}
 
     # Run the transfer
     assert transfer_obj.run()
-    # Check the log messages for the STS request asking for the session of length 1234 seconds, regex matching agains 'DurationSeconds': 1234
+    # Check the log messages for the STS request asking for the session of length 1234 seconds, regex matching against 'DurationSeconds': 1234
     found_duration = False
     for log_message in log_messages:
         if re.search(r"'DurationSeconds': 1234", log_message):

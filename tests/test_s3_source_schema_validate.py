@@ -92,7 +92,7 @@ def test_s3_source_protocol(
 
     json_data["source"]["protocol"] = valid_protocol_definition_using_assume_role
 
-    # Set the expiry to a sensible valule
+    # Set the expiry to a sensible value
     json_data["source"]["protocol"]["token_expiry_seconds"] = 10000
     assert validate_transfer_json(json_data)
 
