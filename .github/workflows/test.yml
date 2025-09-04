@@ -10,7 +10,8 @@ on:
   push:
   pull_request:
     types: [opened, synchronize]
-    branches: main
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   prepare-base:
     name: Prepare base dependencies
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -76,7 +77,7 @@ jobs:
 
   lint-ruff:
     name: ruff
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -114,7 +115,7 @@ jobs:
 
   lint-black:
     name: black
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -149,7 +150,7 @@ jobs:
 
   pylint:
     name: Check pylint
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -188,7 +189,7 @@ jobs:
 
   mypy:
     name: Check mypy
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -227,7 +228,7 @@ jobs:
 
   lint-other:
     name: Run other linters
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -300,7 +301,7 @@ jobs:
 
   test:
     name: test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: prepare-base
@@ -359,4 +360,3 @@ jobs:
           changelog: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
