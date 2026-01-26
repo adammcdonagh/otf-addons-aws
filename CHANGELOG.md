@@ -1,5 +1,9 @@
 # Changelog
 
+# v26.4.0
+
+- Add support for conditionals to s3 source schema
+
 # v25.27.1
 
 - Allow specifying a long token expiry time for assumed role credentials. This is useful for long running transfers, such as multipart uploads, where the token may expire before the transfer is complete.

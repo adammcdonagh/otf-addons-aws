@@ -23,6 +23,9 @@
     "postCopyAction": {
       "$ref": "s3_source/postCopyAction.json"
     },
+    "conditionals": {
+      "$ref": "s3_source/conditionals.json"
+    },
     "encryption": {
       "$ref": "http://localhost/transfer/encryption.json"
     },
