@@ -1,6 +1,6 @@
 # Changelog
 
-# v26.4.0
+# v26.5.0
 
 - Add support for conditionals to s3 source schema
 
