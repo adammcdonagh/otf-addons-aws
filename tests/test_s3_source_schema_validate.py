@@ -46,6 +46,22 @@ def valid_protocol_definition_using_assume_role_and_keys():
 
 
 @pytest.fixture(scope="function")
+def valid_conditionals():
+    return {
+        "size": {
+            "gt": 100,
+        },
+        "age": {
+            "lt": 3600,
+        },
+        "count": {
+            "minCount": 1,
+            "maxCount": 10,
+        },
+    }
+
+
+@pytest.fixture(scope="function")
 def valid_transfer(valid_protocol_definition):
     return {
         "bucket": "test-bucket",
@@ -221,3 +237,13 @@ def test_s3_destination(valid_transfer, valid_destination):
     # Remove protocol
     del json_data["destination"][0]["protocol"]
     assert not validate_transfer_json(json_data)
+
+
+def test_s3_conditionals(valid_transfer, valid_destination, valid_conditionals):
+    json_data = {
+        "type": "transfer",
+        "source": valid_transfer,
+        "destination": [valid_destination],
+    }
+    json_data["conditionals"] = valid_conditionals
+    assert validate_transfer_json(json_data)
