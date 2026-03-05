@@ -16,6 +16,9 @@
     "assume_role_arn": {
       "type": "string"
     },
+    "assume_role_external_id": {
+      "type": "string"
+    },
     "token_expiry_seconds": {
       "type": "integer",
       "minimum": 900,
@@ -32,13 +35,17 @@
     {
       "if": {
         "properties": {
-          "access_key_id": { "type": "string" }
+          "access_key_id": {
+            "type": "string"
+          }
         },
         "required": ["access_key_id"]
       },
       "then": {
         "properties": {
-          "secret_access_key": { "type": "string" }
+          "secret_access_key": {
+            "type": "string"
+          }
         },
         "required": ["secret_access_key"]
       }
@@ -46,6 +53,14 @@
     {
       "if": {
         "required": ["token_expiry_seconds"]
+      },
+      "then": {
+        "required": ["assume_role_arn"]
+      }
+    },
+    {
+      "if": {
+        "required": ["assume_role_external_id"]
       },
       "then": {
         "required": ["assume_role_arn"]

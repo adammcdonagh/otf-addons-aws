@@ -16,6 +16,9 @@
     "assume_role_arn": {
       "type": "string"
     },
+    "assume_role_external_id": {
+      "type": "string"
+    },
     "region_name": {
       "type": "string"
     }
@@ -26,13 +29,17 @@
     {
       "if": {
         "properties": {
-          "access_key_id": { "type": "string" }
+          "access_key_id": {
+            "type": "string"
+          }
         },
         "required": ["access_key_id"]
       },
       "then": {
         "properties": {
-          "secret_access_key": { "type": "string" }
+          "secret_access_key": {
+            "type": "string"
+          }
         },
         "required": ["secret_access_key"]
       }
