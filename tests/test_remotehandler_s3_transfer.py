@@ -681,15 +681,19 @@ def test_local_to_s3_proxy(setup_bucket, s3_client, tmp_path):
     fs.create_files([{f"{tmp_path}/{datestamp}.txt": {"content": "test1234"}}])
 
     # Override the definition to use local source instead
-    local_to_s3_task_definition_copy = deepcopy(s3_to_s3_proxy_task_definition)
-    local_to_s3_task_definition_copy["source"] = {
+    local_to_s3_s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
+        s3_to_s3_proxy_task_definition
+    )
+    local_to_s3_s3_to_s3_assume_role_task_with_external_id_definition["source"] = {
         "directory": f"{tmp_path}",
         "fileRegex": f"{datestamp}\\.txt",
         "protocol": {"name": "local"},
     }
 
     transfer_obj = transfer.Transfer(
-        None, "local-to-s3", local_to_s3_task_definition_copy
+        None,
+        "local-to-s3",
+        local_to_s3_s3_to_s3_assume_role_task_with_external_id_definition,
     )
 
     assert transfer_obj.run()
@@ -703,12 +707,18 @@ def test_local_to_s3_proxy(setup_bucket, s3_client, tmp_path):
 
 
 def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
+        s3_to_s3_copy_task_definition
+    )
 
-    s3_to_s3_copy_task_definition_copy["source"]["bucket"] = "invalid-bucket"
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition["source"][
+        "bucket"
+    ] = "invalid-bucket"
 
     transfer_obj = transfer.Transfer(
-        None, "s3-to-s3-invalid-source", s3_to_s3_copy_task_definition_copy
+        None,
+        "s3-to-s3-invalid-source",
+        s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition,
     )
 
     with pytest.raises(botocore.errorfactory.ClientError):
@@ -716,9 +726,13 @@ def test_s3_to_s3_invalid_source(setup_bucket, s3_client, tmp_path):
 
 
 def test_s3_to_s3_invalid_destination(credentials, setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
+        s3_to_s3_copy_task_definition
+    )
 
-    s3_to_s3_copy_task_definition_copy["destination"][0]["bucket"] = "invalid-bucket"
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition["destination"][
+        0
+    ]["bucket"] = "invalid-bucket"
 
     # Create a file to find
     datestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -729,7 +743,9 @@ def test_s3_to_s3_invalid_destination(credentials, setup_bucket, s3_client, tmp_
     create_s3_file(s3_client, f"{tmp_path}/{datestamp}.txt", "src/test.txt")
 
     transfer_obj = transfer.Transfer(
-        None, "s3-to-s3-invalid-destination", s3_to_s3_copy_task_definition_copy
+        None,
+        "s3-to-s3-invalid-destination",
+        s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition,
     )
 
     with pytest.raises(exceptions.RemoteTransferError):
@@ -761,12 +777,16 @@ def test_s3_to_s3_with_fin_copy(setup_bucket, tmp_path, s3_client):
 
 
 def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_path):
-    s3_to_s3_copy_task_definition_copy = deepcopy(s3_to_s3_copy_task_definition)
-    s3_to_s3_copy_task_definition_copy["destination"][0]["protocol"][
-        "disableBucketOwnerControlACL"
-    ] = True
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
+        s3_to_s3_copy_task_definition
+    )
+    s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition["destination"][
+        0
+    ]["protocol"]["disableBucketOwnerControlACL"] = True
     transfer_obj = transfer.Transfer(
-        None, "s3-to-s3", s3_to_s3_copy_task_definition_copy
+        None,
+        "s3-to-s3",
+        s3_to_s3_copy_s3_to_s3_assume_role_task_with_external_id_definition,
     )
 
     # Create a file to watch for with the current date
@@ -952,6 +972,41 @@ def test_s3_to_s3_assume_role(setup_bucket, tmp_path, s3_client):
     assert "Contents" not in objects
 
 
+def test_s3_to_s3_assume_role_with_assume_role_external_id(
+    setup_bucket, tmp_path, s3_client
+):
+    s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
+        s3_to_s3_assume_role_task_definition
+    )
+    s3_to_s3_assume_role_task_with_external_id_definition["source"]["protocol"][
+        "assume_role_external_id"
+    ] = "my-external-id"
+    transfer_obj = transfer.Transfer(
+        None,
+        "s3-to-s3-assume_role-with-external-id",
+        s3_to_s3_assume_role_task_with_external_id_definition,
+    )
+
+    # Create a file to watch for with the current date
+    # Write a test file locally
+
+    fs.create_files([{f"{tmp_path}/file-assumerole.txt": {"content": "test1234"}}])
+    create_s3_file(
+        s3_client, f"{tmp_path}/file-assumerole.txt", "src/file-assumerole.txt"
+    )
+
+    assert transfer_obj.run()
+
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
+    # check that the correct_file.txt is in the bucket, and not the other 2
+    assert len(objects["Contents"]) == 1
+    assert objects["Contents"][0]["Key"] == "dest/file-assumerole.txt"
+
+    # Check that the file is not in the source bucket
+    objects = s3_client.list_objects(Bucket=BUCKET_NAME)
+    assert "Contents" not in objects
+
+
 def test_s3_to_s3_copy_pca_delete(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None, "s3-to-s3-pca-delete", s3_to_s3_pca_delete_task_definition
@@ -1030,12 +1085,12 @@ def test_s3_to_s3_copy_pca_move_new_bucket(setup_bucket, tmp_path, s3_client):
     assert any(obj["Key"] == "PCA/pca-move.txt" for obj in objects["Contents"])
 
     # Try again but change the post copy move destination to the root of the bucket instead
-    s3_to_s3_pca_move_new_bucket_task_definition_copy = deepcopy(
+    s3_to_s3_pca_move_new_bucket_s3_to_s3_assume_role_task_with_external_id_definition = deepcopy(
         s3_to_s3_pca_move_new_bucket_task_definition
     )
-    s3_to_s3_pca_move_new_bucket_task_definition_copy["source"]["postCopyAction"][
-        "destination"
-    ] = f"s3://{BUCKET_NAME_2}/"
+    s3_to_s3_pca_move_new_bucket_s3_to_s3_assume_role_task_with_external_id_definition[
+        "source"
+    ]["postCopyAction"]["destination"] = f"s3://{BUCKET_NAME_2}/"
 
     fs.create_files([{f"{tmp_path}/pca-move.txt": {"content": "test1234"}}])
     create_s3_file(s3_client, f"{tmp_path}/pca-move.txt", "src/pca-move.txt")
@@ -1043,7 +1098,7 @@ def test_s3_to_s3_copy_pca_move_new_bucket(setup_bucket, tmp_path, s3_client):
     transfer_obj = transfer.Transfer(
         None,
         "s3-to-s3-pca-move-new-bucket-2",
-        s3_to_s3_pca_move_new_bucket_task_definition_copy,
+        s3_to_s3_pca_move_new_bucket_s3_to_s3_assume_role_task_with_external_id_definition,
     )
 
     assert transfer_obj.run()

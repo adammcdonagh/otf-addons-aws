@@ -1,5 +1,9 @@
 # Changelog
 
+# v26.9.0
+
+- Add support for specifying assume_role_external_id when assuming role for s3 transfers/executions
+
 # v26.5.0
 
 - Add support for conditionals to s3 source schema

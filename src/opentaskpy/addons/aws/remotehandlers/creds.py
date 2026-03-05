@@ -62,11 +62,12 @@ def _custom_compute_socket_options(self, scoped_config, client_config=None):  # 
     return socket_options
 
 
-def get_aws_client(
+def get_aws_client(  # pylint: disable=too-many-positional-arguments
     client_type: str,
     credentials: dict,
     token_expiry_seconds: int | None = 900,
     assume_role_arn: str | None = None,
+    assume_role_external_id: str | None = None,
     config: Config | None = None,
 ) -> dict:
     """Get an AWS client of the specified type using the provided credentials.
@@ -76,6 +77,7 @@ def get_aws_client(
         credentials: The credentials to use
         token_expiry_seconds: The expiry time for the token (optional, defaults to 900)
         assume_role_arn: The role to assume, if using assumed role credentials (optional)
+        assume_role_external_id: The external id to use when assuming the role (optional)
         config: The config to use for the client (optional)
     """
     if client_type == "lambda":
@@ -99,11 +101,19 @@ def get_aws_client(
         logger.info(f"Assuming role: {assume_role_arn}")
         sts_client = boto3.client("sts", **kwargs)
 
-        assumed_role_object = sts_client.assume_role(
-            RoleArn=assume_role_arn,
-            RoleSessionName=f"OTF{time()}",
-            DurationSeconds=token_expiry_seconds,
-        )
+        if assume_role_external_id:
+            assumed_role_object = sts_client.assume_role(
+                RoleArn=assume_role_arn,
+                ExternalId=assume_role_external_id,
+                RoleSessionName=f"OTF{time()}",
+                DurationSeconds=token_expiry_seconds,
+            )
+        else:
+            assumed_role_object = sts_client.assume_role(
+                RoleArn=assume_role_arn,
+                RoleSessionName=f"OTF{time()}",
+                DurationSeconds=token_expiry_seconds,
+            )
 
         credentials = assumed_role_object["Credentials"]
         # Log the assumed role access key id
@@ -149,6 +159,12 @@ def set_aws_creds(obj) -> None:  # type: ignore[no-untyped-def]
         obj.spec["protocol"]["assume_role_arn"]
         if "assume_role_arn" in obj.spec["protocol"]
         else os.environ.get("AWS_ROLE_ARN")
+    )
+
+    obj.assume_role_external_id = (
+        obj.spec["protocol"]["assume_role_external_id"]
+        if "assume_role_external_id" in obj.spec["protocol"]
+        else os.environ.get("AWS_ASSUME_ROLE_EXTERNAL_ID")
     )
 
     obj.token_expiry_seconds = obj.spec["protocol"].get("token_expiry_seconds", 900)

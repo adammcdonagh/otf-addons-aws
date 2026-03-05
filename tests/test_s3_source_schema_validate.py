@@ -107,6 +107,19 @@ def test_s3_source_protocol(
     assert not validate_transfer_json(json_data)
 
     json_data["source"]["protocol"] = valid_protocol_definition_using_assume_role
+    assert validate_transfer_json(json_data)
+
+    # Add an external id and validate it passes
+    json_data["source"]["protocol"]["assume_role_external_id"] = "12345"
+    assert validate_transfer_json(json_data)
+
+    # Remove the assume role arn and validate it fails with external id
+    del json_data["source"]["protocol"]["assume_role_arn"]
+    assert not validate_transfer_json(json_data)
+
+    # Add the assume role arn back and remove the external id for remaining tests
+    json_data["source"]["protocol"]["assume_role_arn"] = "12345"
+    del json_data["source"]["protocol"]["assume_role_external_id"]
 
     # Set the expiry to a sensible value
     json_data["source"]["protocol"]["token_expiry_seconds"] = 10000

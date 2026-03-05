@@ -87,6 +87,8 @@ def cleanup_credentials():
         del os.environ["AWS_ENDPOINT_URL"]
     if os.environ.get("ASSUME_ROLE_ARN"):
         del os.environ["ASSUME_ROLE_ARN"]
+    if os.environ.get("AWS_ASSUME_ROLE_EXTERNAL_ID"):
+        del os.environ["AWS_ASSUME_ROLE_EXTERNAL_ID"]
     if os.environ.get("OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"):
         del os.environ["OTF_AWS_SECRETS_LOOKUP_FAILED_IS_ERROR"]
 
