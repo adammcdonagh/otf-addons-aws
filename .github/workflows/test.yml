@@ -326,8 +326,8 @@ jobs:
         run: |
           . venv/bin/activate
           localstack start -d                       # Start LocalStack in the background
-          echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
-          localstack wait -t 45                     # to become ready before timing out
+          echo "Waiting for LocalStack startup..."  # Wait 45 seconds for the LocalStack container
+          localstack wait -t 60                     # to become ready before timing out
           echo "Startup complete"
       - name: Run tests
         env:
