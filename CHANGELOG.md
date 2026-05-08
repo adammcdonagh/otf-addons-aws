@@ -1,5 +1,9 @@
 # Changelog
 
+# v26.9.1
+
+- Fix a bug where the S3 client was not being properly closed and garbage collected, which could lead to resource leaks and issues with too many open connections. This was caused by the `tidy` method not setting the `s3_client` attribute to `None` after closing it, which meant that the botocore objects were not being garbage collected.
+
 # v26.9.0
 
 - Add support for specifying assume_role_external_id when assuming role for s3 transfers/executions
