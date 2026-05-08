@@ -26,7 +26,7 @@ requires-python = ">=3.11"
 dev = [
     "awscli",
     "awscli-local",
-    "localstack=4.14.0",
+    "localstack == 4.14.0",
     "localstack-client",
     "pytest-shell",
     "types-requests",
