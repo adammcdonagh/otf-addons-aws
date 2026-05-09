@@ -56,7 +56,7 @@ jobs:
           . venv/bin/activate
           python -m pip install -U pip setuptools wheel
           pip install -U ".[dev]"
-          docker pull localstack/localstack
+          docker pull floci/floci:latest
       - name: Generate pre-commit restore key
         id: generate-pre-commit-key
         run: >-
@@ -322,12 +322,19 @@ jobs:
           fail-on-cache-miss: true
           key: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{
             needs.prepare-base.outputs.python-key }}
-      - name: Start LocalStack
+      - name: Start Floci
         run: |
-          . venv/bin/activate
-          localstack start -d                       # Start LocalStack in the background
-          echo "Waiting for LocalStack startup..."  # Wait 45 seconds for the LocalStack container
-          localstack wait -t 60                     # to become ready before timing out
+          docker network create floci-net || true
+          docker run -d --name floci \
+            --network floci-net \
+            -p 4566:4566 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e FLOCI_HOSTNAME=floci \
+            -e FLOCI_SERVICES_LAMBDA_DOCKER_NETWORK=floci-net \
+            -u root \
+            floci/floci:latest
+          echo "Waiting for Floci startup..."
+          timeout 60 bash -c 'until curl -sf http://localhost:4566/_localstack/health > /dev/null; do sleep 1; done'
           echo "Startup complete"
       - name: Run tests
         env:

@@ -799,7 +799,7 @@ def test_s3_to_s3_copy_disable_bucket_owner_acl(setup_bucket, s3_client, tmp_pat
 
     assert transfer_obj.run()
 
-    # Can't really test this works with localstack, since there's no actual IAM permissions set on anything
+    # Can't really test this works with floci, since there's no actual IAM permissions set on anything
     # Check that the file is in the destination bucket
     objects = s3_client.list_objects(Bucket=BUCKET_NAME_2)
     assert len(objects["Contents"]) == 1

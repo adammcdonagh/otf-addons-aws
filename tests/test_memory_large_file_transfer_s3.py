@@ -18,9 +18,9 @@ and written to:
 
 Source objects are created from sparse local files (negligible local disk usage).
 Both source and destination S3 objects are deleted in fixture teardown so the
-localstack state is left clean.
+floci state is left clean.
 
-NOTE: This test requires the localstack docker service (see tests/docker-compose.yml).
+NOTE: This test requires the floci docker service (see tests/docker-compose.yml).
 
 Run in isolation with visible output:
     pytest tests/test_memory_large_file_transfer_s3.py -v -s
@@ -88,7 +88,7 @@ def _create_sparse_local_file(path: str, size: int) -> None:
 
     On Linux the OS allocates no real disk blocks for the gap, so local disk
     usage is negligible while the file reads back as exactly *size* zeroes.
-    The S3 put_object call streams those zeroes to localstack, simulating a
+    The S3 put_object call streams those zeroes to floci, simulating a
     realistic large-file upload without exhausting local disk space.
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -36,30 +36,11 @@ def docker_compose_files(root_dir, root_dir_tests) -> list[str]:
     ]
 
 
-# @pytest.fixture(scope="session")
-# @pytest.mark.skipif(
-#     condition=in_docker(), reason="cannot run bootstrap tests in docker"
-# )
-
-# localstack_ = pytest_localstack.session_fixture(
-#     localstack_version="2.1.0",
-#     services=["s3", "lambda"],  # Limit to the AWS services you need.
-#     scope="session",  # Use the same Localstack container for all tests in this module.
-#     autouse=True,  # Automatically use this fixture in tests.
-#     region_name="eu-west-1",  # Use a specific AWS region.
-# )
-
-
-# @pytest.fixture(scope="session")
-# def localstack() -> str:
-#     return "http://localhost:4566"
-
-
 @pytest.fixture(scope="session")
-def localstack(docker_services) -> str:
+def floci(docker_services) -> str:
     if not github_actions():
-        docker_services.start("localstack")
-        port = docker_services.port_for("localstack", 4566)
+        docker_services.start("floci")
+        port = docker_services.port_for("floci", 4566)
         address = f"http://{docker_services.docker_ip}:{port}"
         return address
     else:
@@ -68,11 +49,11 @@ def localstack(docker_services) -> str:
 
 
 @pytest.fixture(scope="function")
-def credentials(localstack, cleanup_credentials):
+def credentials(floci, cleanup_credentials):
     os.environ["AWS_ACCESS_KEY_ID"] = "test"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "test"
     os.environ["AWS_REGION"] = "eu-west-1"
-    os.environ["AWS_ENDPOINT_URL"] = localstack
+    os.environ["AWS_ENDPOINT_URL"] = floci
 
 
 @pytest.fixture(scope="function")
@@ -94,45 +75,45 @@ def cleanup_credentials():
 
 
 @pytest.fixture(scope="function")
-def ssm_client(localstack, credentials):
+def ssm_client(floci, credentials):
     kwargs = {
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("ssm", endpoint_url=localstack)
+    return session.client("ssm", endpoint_url=floci)
 
 
 @pytest.fixture(scope="function")
-def secrets_manager_client(localstack, credentials):
+def secrets_manager_client(floci, credentials):
     kwargs = {
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("secretsmanager", endpoint_url=localstack)
+    return session.client("secretsmanager", endpoint_url=floci)
 
 
 @pytest.fixture(scope="function")
-def lambda_client(localstack, credentials):
+def lambda_client(floci, credentials):
     kwargs = {
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("lambda", endpoint_url=localstack)
+    return session.client("lambda", endpoint_url=floci)
 
 
 @pytest.fixture(scope="function")
-def s3_client(localstack, credentials):
+def s3_client(floci, credentials):
     kwargs = {
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("s3", endpoint_url=localstack)
+    return session.client("s3", endpoint_url=floci)
 
 
 @pytest.fixture(scope="function")
-def secretsmanager_client(localstack, credentials):
+def secretsmanager_client(floci, credentials):
     kwargs = {
         "region_name": "eu-west-1",
     }
     session = boto3.session.Session(**kwargs)
-    return session.client("secretsmanager", endpoint_url=localstack)
+    return session.client("secretsmanager", endpoint_url=floci)
