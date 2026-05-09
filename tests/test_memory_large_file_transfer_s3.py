@@ -38,9 +38,7 @@ import threading
 import time
 import uuid
 
-import boto3
 import objgraph
-import opentaskpy.otflogging
 import psutil
 import pytest
 from opentaskpy.config.loader import ConfigLoader
@@ -54,6 +52,31 @@ os.environ["OTF_BATCH_POLL_INTERVAL"] = (
     "0.1"  # don't wait 5s between batch status checks
 )
 os.environ["OTF_NO_THREAD_SLEEP"] = "1"  # don't wait 1s between task thread creation
+
+
+@pytest.fixture(autouse=True)
+def _enforce_info_log_level():
+    """Ensure INFO log level during this test regardless of collection-time env overrides.
+
+    Other test modules set OTF_LOG_LEVEL=DEBUG at module level.  Because pytest
+    imports (collects) all modules before running any test, those assignments
+    execute after this module's own module-level assignment and leave
+    OTF_LOG_LEVEL=DEBUG in the environment by the time this test actually runs.
+    Setting it here (at fixture execution time) guarantees INFO for the duration
+    of the memory test, which prevents botocore/s3transfer from flooding the
+    heap with DEBUG log objects and skewing the RSS measurement.
+    """
+    prev = os.environ.get("OTF_LOG_LEVEL")
+    os.environ["OTF_LOG_LEVEL"] = "INFO"
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger("botocore").setLevel(logging.INFO)
+    logging.getLogger("s3transfer").setLevel(logging.INFO)
+    yield
+    if prev is None:
+        os.environ.pop("OTF_LOG_LEVEL", None)
+    else:
+        os.environ["OTF_LOG_LEVEL"] = prev
+
 
 # ---------------------------------------------------------------------------
 # Constants
