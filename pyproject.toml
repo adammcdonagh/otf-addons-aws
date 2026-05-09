@@ -45,6 +45,7 @@ dev = [
     "moto[ecs]",
     "freezegun",
     "objgraph",
+    "psutil >= 5.9",
 ]
 
 [project.urls]
