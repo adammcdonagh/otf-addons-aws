@@ -85,6 +85,17 @@ def create_lambda_function(lambda_client, lambda_handler, payload, invoke=True):
         Role="arn:aws:iam::123456789012:role/lambda-role",
         Timeout=10,
         MemorySize=128,
+        Environment={
+            "Variables": {
+                # Allow the Lambda function to reach the floci S3 service.
+                # Lambda containers run on the "floci-net" Docker network so
+                # "floci" resolves to the floci container.
+                "AWS_ENDPOINT_URL": "http://floci:4566",
+                "AWS_DEFAULT_REGION": "eu-west-1",
+                "AWS_ACCESS_KEY_ID": "test",
+                "AWS_SECRET_ACCESS_KEY": "test",
+            }
+        },
     )
     function_arn = lambda_response["FunctionArn"]
 

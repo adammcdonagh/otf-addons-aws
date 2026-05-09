@@ -1,13 +1,21 @@
 version: "3.8"
 
 services:
-  localstack:
-    image: localstack/localstack:2.1.0
+  floci:
+    image: floci/floci:latest
     restart: always
-    container_name: localstack
+    container_name: floci
     ports:
       - "4566:4566"
-      - "4510-4559:4510-4559" # external services port range
+    environment:
+      - FLOCI_HOSTNAME=floci
+      - FLOCI_SERVICES_LAMBDA_DOCKER_NETWORK=floci-net
     volumes:
-      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "./volume:/app/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - floci-net
+
+networks:
+  floci-net:
+    name: floci-net

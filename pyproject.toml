@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otf-addons-aws"
-version = "v26.9.0"
+version = "v26.18.0"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license = { text = "GPLv3" }
 classifiers = [
@@ -16,7 +16,7 @@ keywords = ["automation", "task", "framework", "aws", "s3", "ssm", "otf"]
 dependencies = [
     "boto3 >= 1.26",
     "jsonpath-ng >= 1.7.0",
-    "opentaskpy >= v24.23.0",
+    "opentaskpy >= v26.18.1",
 ]
 description = "Addons for opentaskpy, giving it the ability to push/pull via AWS S3, and pull variables from AWS SSM Parameter Store."
 readme = "README.md"
@@ -26,8 +26,6 @@ requires-python = ">=3.11"
 dev = [
     "awscli",
     "awscli-local",
-    "localstack",
-    "localstack-client",
     "pytest-shell",
     "types-requests",
     "types-python-dateutil",
@@ -46,6 +44,8 @@ dev = [
     "pytest-cov",
     "moto[ecs]",
     "freezegun",
+    "objgraph",
+    "psutil >= 5.9",
 ]
 
 [project.urls]
@@ -57,7 +57,7 @@ dev = [
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v26.9.0"
+current_version = "v26.18.0"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -102,7 +102,7 @@ good-names = ["id", "_", "ip", "rc", "ex"]
 # consider-using-namedtuple-or-dataclass - too opinionated
 # consider-using-assignment-expr - decision to use := better left to devs
 disable = [
-    "unknown-option-value",                   # Forced to use an older version of pylint that doesn't support some newer options. Ignore the warnings. Clashes with localstack's requirement for the pinned dill package version
+    "unknown-option-value",                   # Forced to use an older version of pylint that doesn't support some newer options. Ignore the warnings.
     "broad-except",                           # This is renamed in newer versions of pylint, but we need to ignore due to the above.
     "format",
     "abstract-method",

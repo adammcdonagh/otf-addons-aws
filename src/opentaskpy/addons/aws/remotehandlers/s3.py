@@ -485,6 +485,7 @@ class S3Transfer(RemoteTransferHandler):
     def tidy(self) -> None:
         """Tidy up the S3 client."""
         self.s3_client.close()
+        self.s3_client = None  # allow botocore objects to be garbage collected
 
 
 class S3Execution(RemoteExecutionHandler):
@@ -495,10 +496,6 @@ class S3Execution(RemoteExecutionHandler):
     """
 
     TASK_TYPE = "E"
-
-    def tidy(self) -> None:
-        """Tidy up the S3 client."""
-        self.s3_client.close()
 
     def __init__(self, spec: dict):
         """Initialise the S3Execution handler.
@@ -593,3 +590,8 @@ class S3Execution(RemoteExecutionHandler):
             result = False
 
         return result
+
+    def tidy(self) -> None:
+        """Tidy up the S3 client."""
+        self.s3_client.close()
+        self.s3_client = None  # allow botocore objects to be garbage collected
